@@ -85,7 +85,7 @@ function LinkCard({ url, mine }) {
 
 function ReplyQuote({ preview, mine, onJump }) {
   const { authUser } = useAuthStore();
-  const who = preview.senderId === authUser._id ? "You" : "Them";
+  const who = preview.senderId === authUser?._id ? "You" : "Them";
   const label = preview.deleted
     ? "Deleted message"
     : preview.text || (preview.hasImage ? "📷 Photo" : preview.fileName ? `📎 ${preview.fileName}` : "Message");
@@ -389,7 +389,7 @@ const MessageBubble = memo(function MessageBubble({ msg, mine, flash, fresh, onJ
         {Object.keys(grouped).length > 0 && (
           <div className={`-mt-1.5 flex flex-wrap gap-1 px-2 ${mine ? "justify-end" : "justify-start"}`}>
             {Object.entries(grouped).map(([emoji, users]) => {
-              const reacted = users.includes(authUser._id);
+              const reacted = users.includes(authUser?._id);
               return (
                 <button
                   key={emoji}

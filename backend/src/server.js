@@ -8,7 +8,7 @@ import compression from "compression";
 import mongoose from "mongoose";
 import authRoutes from "./routes/auth.route.js";
 import messageRoutes from "./routes/message.route.js";
-import { aiRouter, botRouter, callRouter, hookRouter } from "./routes/extras.route.js";
+import { aiRouter, botRouter, callRouter, clientErrorRouter, hookRouter } from "./routes/extras.route.js";
 import { ensureAssistantBot } from "./lib/bots.js";
 import { connectDB } from "./lib/db.js";
 import { ENV, IS_PROD, ALLOWED_ORIGINS, assertEnv } from "./lib/env.js";
@@ -73,6 +73,7 @@ app.use("/api/ai", aiRouter);
 app.use("/api/bots", botRouter);
 app.use("/api/calls", callRouter);
 app.use("/api/hooks", hookRouter);
+app.use("/api/client-errors", clientErrorRouter);
 
 // the frontend is hosted on Vercel; only serve the bundle if it was built next to the API
 const distPath = path.join(__dirname, "../frontend/dist");

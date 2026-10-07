@@ -37,6 +37,36 @@ hookRouter.post(
   incomingWebhook,
 );
 
+// ---- public: browsers report crashes so they show up in the server log ----
+export const clientErrorRouter = express.Router();
+clientErrorRouter.post(
+  "/",
+  rateLimit({
+    windowMs: 60 * 1000,
+    limit: 30,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+    message: { message: "Too many reports" },
+  }),
+  (req, res) => {
+    const clip = (v, n) => (typeof v === "string" ? v.slice(0, n) : undefined);
+    const b = req.body || {};
+    console.error(
+      "CLIENT_ERROR " +
+        JSON.stringify({
+          message: clip(b.message, 300),
+          name: clip(b.name, 60),
+          stack: clip(b.stack, 1500),
+          componentStack: clip(b.componentStack, 800),
+          url: clip(b.url, 200),
+          ua: clip(req.headers["user-agent"], 160),
+          build: clip(b.build, 40),
+        }),
+    );
+    res.status(204).end();
+  },
+);
+
 // ---- authenticated ----
 export const aiRouter = express.Router();
 aiRouter.use(arcjetProtection, protectRoute);

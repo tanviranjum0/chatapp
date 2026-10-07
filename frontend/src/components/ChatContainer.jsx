@@ -17,8 +17,15 @@ const NEAR_BOTTOM_PX = 160;
 const INITIAL_RENDER = 80; // long histories render in pages: far fewer DOM nodes to lay out
 const RENDER_STEP = 100;
 
+// The conversation can be closed (back button, X, Esc) while its panel is still on screen animating out.
+// Everything below needs a user, so this guard renders nothing once there is none.
 function ChatContainer() {
   const selectedUser = useChatStore((s) => s.selectedUser);
+  if (!selectedUser) return null;
+  return <Conversation key={selectedUser._id} selectedUser={selectedUser} />;
+}
+
+function Conversation({ selectedUser }) {
   const messages = useChatStore((s) => s.messages);
   const isMessagesLoading = useChatStore((s) => s.isMessagesLoading);
   const jumpTarget = useChatStore((s) => s.jumpTarget);

@@ -224,7 +224,7 @@ function MessageInput() {
               <p className="text-xs font-semibold text-brand-400">
                 {editing
                   ? contextLabel
-                  : `Replying to ${replyingTo.senderId === authUser._id ? "yourself" : selectedUser.fullName}`}
+                  : `Replying to ${replyingTo.senderId === authUser?._id ? "yourself" : selectedUser.fullName}`}
               </p>
               <p className="truncate text-sm text-slate-300">{contextText}</p>
             </div>

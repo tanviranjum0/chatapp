@@ -46,30 +46,26 @@ function ChatPage() {
       <section
         className={`${selectedUser ? "flex" : "hidden md:flex"} min-w-0 flex-1 flex-col bg-ink-900/30`}
       >
-        <AnimatePresence mode="wait" initial={false}>
-          {selectedUser ? (
-            <motion.div
-              key={selectedUser._id}
-              initial={{ opacity: 0, x: 24 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -12 }}
-              transition={{ duration: 0.22 }}
-              className="flex min-h-0 flex-1 flex-col"
-            >
-              <ChatContainer />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="empty"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-1 flex-col"
-            >
-              <NoConversationPlaceholder />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {selectedUser ? (
+          <motion.div
+            key={selectedUser._id}
+            initial={{ opacity: 0, x: 24 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.2 }}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            <ChatContainer />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="empty"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-1 flex-col"
+          >
+            <NoConversationPlaceholder />
+          </motion.div>
+        )}
       </section>
     </motion.div>
   );

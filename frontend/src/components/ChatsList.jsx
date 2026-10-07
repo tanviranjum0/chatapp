@@ -14,7 +14,7 @@ function ChatsList() {
   const setSelectedUser = useChatStore((s) => s.setSelectedUser);
   const fetchChats = useChatStore((s) => s.fetchChats);
   const onlineUsers = useAuthStore((s) => s.onlineUsers);
-  const meId = useAuthStore((s) => s.authUser._id);
+  const meId = useAuthStore((s) => s.authUser?._id);
 
   // rows present on first paint appear instantly; rows that arrive later slide in
   const initialIds = useRef(null);

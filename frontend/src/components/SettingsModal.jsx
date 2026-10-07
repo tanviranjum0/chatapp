@@ -91,7 +91,7 @@ function SecuritySection() {
           <p className="font-medium text-slate-100">Two-factor authentication</p>
           <p className="text-sm text-slate-400">
             {enabled
-              ? "On: we email a 6-digit code to " + authUser.email + " every time you log in."
+              ? "On: we email a 6-digit code to " + authUser?.email + " every time you log in."
               : "Off: turn it on to require an emailed code in addition to your password."}
           </p>
         </div>

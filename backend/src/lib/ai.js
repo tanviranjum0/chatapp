@@ -25,7 +25,16 @@ const claude = async ({ system, prompt, maxTokens = 400 }) => {
       messages: [{ role: "user", content: prompt }],
     }),
   });
-  if (!res.ok) throw new Error(`AI provider responded with ${res.status}`);
+  if (!res.ok) {
+    // keep the provider's reason (bad model, no credit, invalid key...) so it shows up in the logs
+    let reason = "";
+    try {
+      reason = (await res.json())?.error?.message || "";
+    } catch {
+      /* not json */
+    }
+    throw new Error(`AI provider responded with ${res.status}${reason ? `: ${String(reason).slice(0, 200)}` : ""}`);
+  }
   const data = await res.json();
   return (data.content || []).map((b) => b.text || "").join("").trim();
 };

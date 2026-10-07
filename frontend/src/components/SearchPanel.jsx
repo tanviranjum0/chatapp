@@ -149,7 +149,7 @@ function SearchPanel() {
               >
                 <div className="mb-0.5 flex items-center justify-between text-xs text-slate-500">
                   <span className="font-semibold text-slate-300">
-                    {m.senderId === authUser._id ? "You" : selectedUser.fullName}
+                    {m.senderId === authUser?._id ? "You" : selectedUser.fullName}
                   </span>
                   <span>
                     {dayLabel(m.createdAt)} · {timeLabel(m.createdAt)}

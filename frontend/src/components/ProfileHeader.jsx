@@ -54,7 +54,7 @@ function ProfileHeader() {
             aria-label="Change profile picture"
           >
             <Avatar
-              src={selectedImg || authUser.profilePic}
+              src={selectedImg || authUser?.profilePic}
               alt="User image"
               size="size-14"
               online
@@ -74,7 +74,7 @@ function ProfileHeader() {
           {/* USERNAME & ONLINE TEXT */}
           <div className="min-w-0">
             <h3 className="max-w-[150px] truncate text-base font-semibold text-white">
-              {authUser.fullName}
+              {authUser?.fullName}
             </h3>
             <p className="text-xs font-medium text-emerald-400">Online</p>
           </div>
