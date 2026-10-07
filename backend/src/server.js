@@ -24,8 +24,7 @@ const __dirname = path.resolve();
 const PORT = ENV.PORT || 3000;
 
 // Render (and most hosts) terminate TLS in a proxy: needed for correct client IPs / secure cookies
-// two hops: Render's load balancer, and Vercel which proxies /api for the web app
-app.set("trust proxy", 2);
+app.set("trust proxy", 1);
 app.disable("x-powered-by");
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
@@ -43,8 +42,8 @@ app.use(
 );
 
 // cheap liveness probe for Render, registered before the heavy middleware
-app.get("/health", (req, res) =>
-  res.status(200).json({ status: "ok", db: mongoose.connection.readyState === 1, clientIp: req.ip }),
+app.get("/health", (_, res) =>
+  res.status(200).json({ status: "ok", db: mongoose.connection.readyState === 1 }),
 );
 
 app.use(express.json({ limit: "8mb" })); // req.body (images and files travel as base64)
