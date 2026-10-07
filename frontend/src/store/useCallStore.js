@@ -2,6 +2,7 @@ import { create } from "zustand";
 import toast from "react-hot-toast";
 import { axiosInstance } from "../lib/axios";
 import { useAuthStore } from "./useAuthStore";
+import { onRingtoneStatus, startRingtone, stopRingtone } from "../lib/ringtone";
 
 const RING_TIMEOUT_MS = 45_000;
 const FALLBACK_ICE = [{ urls: ["stun:stun.l.google.com:19302"] }];
@@ -11,7 +12,6 @@ let pc = null;
 let pendingIce = []; // candidates that arrive before the remote description is set
 let incomingOffer = null;
 let ringTimer = null;
-let ringAudio = null;
 let iceServers = null;
 let isCaller = false; // the caller is "impolite" when both sides renegotiate at once
 let makingOffer = false;
@@ -43,10 +43,7 @@ const getIceServers = async () => {
 const stopRinging = () => {
   clearTimeout(ringTimer);
   ringTimer = null;
-  if (ringAudio) {
-    ringAudio.pause();
-    ringAudio = null;
-  }
+  stopRingtone();
 };
 
 const mediaErrorText = (err) =>
@@ -76,6 +73,7 @@ const IDLE = {
   recordStartedAt: null,
   remoteRecording: false,
   startedAt: null,
+  soundBlocked: false, // the browser is still refusing to play the ring
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -465,9 +463,8 @@ export const useCallStore = create((set, get) => {
         incomingOffer = payload;
         pendingIce = [];
         set({ ...IDLE, status: "incoming", peer: from, media, callId });
-        ringAudio = new Audio("/sounds/notification.mp3");
-        ringAudio.loop = true;
-        ringAudio.play().catch(() => {});
+        // audible only if the page was "unlocked" by an earlier tap (see lib/ringtone.js)
+        startRingtone().then((audible) => get().status === "incoming" && set({ soundBlocked: !audible }));
         ringTimer = setTimeout(() => {
           send("reject", from._id, callId);
           cleanup(`Missed call from ${from.fullName}`);
@@ -532,7 +529,11 @@ export const useCallStore = create((set, get) => {
     bindSocket: (socket) => {
       const onSignal = (m) => get().handleSignal(m);
       socket.on("call:signal", onSignal);
+      const offStatus = onRingtoneStatus((st) => {
+        if (get().status === "incoming" && st.unlocked && get().soundBlocked) set({ soundBlocked: false });
+      });
       return () => {
+        offStatus();
         socket.off("call:signal", onSignal);
         if (get().status !== "idle") cleanup();
       };

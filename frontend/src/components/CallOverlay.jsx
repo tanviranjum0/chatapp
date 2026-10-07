@@ -123,6 +123,7 @@ function CallOverlay() {
   const recordStartedAt = useCallStore((s) => s.recordStartedAt);
   const remoteRecording = useCallStore((s) => s.remoteRecording);
   const startedAt = useCallStore((s) => s.startedAt);
+  const soundBlocked = useCallStore((s) => s.soundBlocked);
   const { accept, reject, hangup, toggleMute, toggleCamera, toggleSpeaker, toggleScreenShare, toggleRecording } =
     useCallStore.getState();
 
@@ -163,6 +164,11 @@ function CallOverlay() {
               <p className="truncate text-base font-semibold text-white">{peer.fullName}</p>
               <p className="truncate text-sm text-slate-400">Incoming {video ? "video" : "voice"} call…</p>
             </div>
+            {soundBlocked && (
+              <p className="col-span-2 -mb-1 rounded-xl bg-amber-500/15 px-3 py-2 text-center text-xs font-medium text-amber-300 sm:col-span-3">
+                🔇 Your browser is muting the ring. Tap anywhere on the page to turn it on.
+              </p>
+            )}
             {/* phones: two wide, easy-to-hit buttons under the name; larger screens: round icons on the right */}
             <div className="col-span-2 grid grid-cols-2 gap-3 sm:col-span-1 sm:flex">
               <button
