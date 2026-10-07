@@ -1,0 +1,39 @@
+# Render Blueprint - API only (the frontend is hosted on Vercel).
+# New > Blueprint > pick this repo. Secrets marked `sync: false` are asked for in the dashboard.
+services:
+  - type: web
+    name: tanvir-chatapp-back
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 22
+      - key: CLIENT_URL # your Vercel URL(s), comma separated, no trailing slash
+        sync: false
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET # 32+ random chars: node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_FROM_NAME
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: ARCJET_KEY
+        sync: false
+      - key: ARCJET_ENV
+        value: production

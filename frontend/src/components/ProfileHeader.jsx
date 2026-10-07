@@ -1,9 +1,14 @@
 import { useState, useRef } from "react";
-import { LogOutIcon, VolumeOffIcon, Volume2Icon } from "lucide-react";
+import { LogOutIcon, VolumeOffIcon, Volume2Icon, CameraIcon } from "lucide-react";
+import { motion } from "motion/react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
+import Avatar from "./Avatar";
 
 const mouseClickSound = new Audio("/sounds/on-off.mp3");
+
+const iconBtn =
+  "flex size-10 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-white/10 hover:text-white";
 
 function ProfileHeader() {
   const { logout, authUser, updateProfile } = useAuthStore();
@@ -27,57 +32,51 @@ function ProfileHeader() {
   };
 
   return (
-    <div className="p-6 border-b border-slate-700/50">
+    <div className="border-b border-white/10 p-5">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           {/* AVATAR */}
-          <div className="avatar online">
-            <button
-              className="size-14 rounded-full overflow-hidden relative group"
-              onClick={() => fileInputRef.current.click()}
-            >
-              <img
-                src={selectedImg || authUser.profilePic || "/avatar.png"}
-                alt="User image"
-                className="size-full object-cover"
-              />
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                <span className="text-white text-xs">Change</span>
-              </div>
-            </button>
-
-            <input
-              type="file"
-              accept="image/*"
-              ref={fileInputRef}
-              onChange={handleImageUpload}
-              className="hidden"
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="group relative shrink-0 rounded-full"
+            onClick={() => fileInputRef.current.click()}
+            aria-label="Change profile picture"
+          >
+            <Avatar
+              src={selectedImg || authUser.profilePic}
+              alt="User image"
+              size="size-14"
+              online
             />
-          </div>
+            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/55 opacity-0 transition-opacity group-hover:opacity-100">
+              <CameraIcon className="size-5 text-white" />
+            </span>
+          </motion.button>
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            onChange={handleImageUpload}
+            className="hidden"
+          />
 
           {/* USERNAME & ONLINE TEXT */}
-          <div>
-            <h3 className="text-slate-200 font-medium text-base max-w-[180px] truncate">
+          <div className="min-w-0">
+            <h3 className="max-w-[150px] truncate text-base font-semibold text-white">
               {authUser.fullName}
             </h3>
-
-            <p className="text-slate-400 text-xs">Online</p>
+            <p className="text-xs font-medium text-emerald-400">Online</p>
           </div>
         </div>
 
         {/* BUTTONS */}
-        <div className="flex gap-4 items-center">
-          {/* LOGOUT BTN */}
-          <button
-            className="text-slate-400 hover:text-slate-200 transition-colors"
-            onClick={logout}
-          >
-            <LogOutIcon className="size-5" />
-          </button>
-
+        <div className="flex items-center gap-1">
           {/* SOUND TOGGLE BTN */}
-          <button
-            className="text-slate-400 hover:text-slate-200 transition-colors"
+          <motion.button
+            whileTap={{ scale: 0.85, rotate: -10 }}
+            className={iconBtn}
+            aria-label="Toggle sounds"
             onClick={() => {
               // play click sound before toggling
               mouseClickSound.currentTime = 0; // reset to start
@@ -86,11 +85,21 @@ function ProfileHeader() {
             }}
           >
             {isSoundEnabled ? (
-              <Volume2Icon className="size-5" />
+              <Volume2Icon className="size-5 text-brand-400" />
             ) : (
               <VolumeOffIcon className="size-5" />
             )}
-          </button>
+          </motion.button>
+
+          {/* LOGOUT BTN */}
+          <motion.button
+            whileTap={{ scale: 0.85 }}
+            className={`${iconBtn} hover:!bg-red-500/15 hover:!text-red-400`}
+            aria-label="Log out"
+            onClick={logout}
+          >
+            <LogOutIcon className="size-5" />
+          </motion.button>
         </div>
       </div>
     </div>

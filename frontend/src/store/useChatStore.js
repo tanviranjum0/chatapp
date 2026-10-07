@@ -27,7 +27,7 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.get("/messages/contacts");
       set({ allContacts: res.data });
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Something went wrong");
     } finally {
       set({ isUsersLoading: false });
     }
@@ -38,7 +38,7 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.get("/messages/chats");
       set({ chats: res.data });
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Something went wrong");
     } finally {
       set({ isUsersLoading: false });
     }
@@ -76,20 +76,24 @@ export const useChatStore = create((set, get) => ({
 
     try {
       const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
-      set({ messages: messages.concat(res.data) });
+      // swap the optimistic bubble for the saved one, keeping anything that arrived meanwhile
+      set({ messages: get().messages.map((m) => (m._id === tempId ? res.data : m)) });
     } catch (error) {
       // remove optimistic message on failure
-      set({ messages: messages });
+      set({ messages: get().messages.filter((m) => m._id !== tempId) });
       toast.error(error.response?.data?.message || "Something went wrong");
     }
   },
 
   subscribeToMessages: () => {
-    const { selectedUser, isSoundEnabled } = get();
+    const { selectedUser } = get();
     if (!selectedUser) return;
 
     const socket = useAuthStore.getState().socket;
+    if (!socket) return;
 
+    // drop any stale listener first so a re-subscribe never double-delivers
+    socket.off("newMessage");
     socket.on("newMessage", (newMessage) => {
       const isMessageSentFromSelectedUser = newMessage.senderId === selectedUser._id;
       if (!isMessageSentFromSelectedUser) return;
@@ -97,7 +101,7 @@ export const useChatStore = create((set, get) => ({
       const currentMessages = get().messages;
       set({ messages: [...currentMessages, newMessage] });
 
-      if (isSoundEnabled) {
+      if (get().isSoundEnabled) {
         const notificationSound = new Audio("/sounds/notification.mp3");
 
         notificationSound.currentTime = 0; // reset to start
@@ -107,7 +111,6 @@ export const useChatStore = create((set, get) => ({
   },
 
   unsubscribeFromMessages: () => {
-    const socket = useAuthStore.getState().socket;
-    socket.off("newMessage");
+    useAuthStore.getState().socket?.off("newMessage");
   },
 }));

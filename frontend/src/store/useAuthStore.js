@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { axiosInstance } from "../lib/axios";
+import { axiosInstance, SOCKET_URL } from "../lib/axios";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 
@@ -33,7 +33,7 @@ export const useAuthStore = create((set, get) => ({
       toast.success("Account created successfully!");
       get().connectSocket();
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Something went wrong");
     } finally {
       set({ isSigningUp: false });
     }
@@ -49,7 +49,7 @@ export const useAuthStore = create((set, get) => ({
 
       get().connectSocket();
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Something went wrong");
     } finally {
       set({ isLoggingIn: false });
     }
@@ -74,7 +74,7 @@ export const useAuthStore = create((set, get) => ({
       toast.success("Profile updated successfully");
     } catch (error) {
       console.log("Error in update profile:", error);
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Something went wrong");
     }
   },
 
@@ -82,7 +82,7 @@ export const useAuthStore = create((set, get) => ({
     const { authUser } = get();
     if (!authUser || get().socket?.connected) return;
 
-    const socket = io(import.meta.env.VITE_BACKEND_URL, {
+    const socket = io(SOCKET_URL, {
       withCredentials: true, // this ensures cookies are sent with the connection
     });
 
@@ -97,6 +97,7 @@ export const useAuthStore = create((set, get) => ({
   },
 
   disconnectSocket: () => {
-    if (get().socket?.connected) get().socket.disconnect();
+    get().socket?.disconnect();
+    set({ socket: null, onlineUsers: [] });
   },
 }));

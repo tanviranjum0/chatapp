@@ -1,20 +1,50 @@
 import express from "express";
 import cookieParser from "cookie-parser";
 import path from "path";
+import fs from "fs";
 import cors from "cors";
+import helmet from "helmet";
+import compression from "compression";
+import mongoose from "mongoose";
 import authRoutes from "./routes/auth.route.js";
 import messageRoutes from "./routes/message.route.js";
 import { connectDB } from "./lib/db.js";
-import { ENV } from "./lib/env.js";
-import { app, server } from "./lib/socket.js";
+import { ENV, IS_PROD, ALLOWED_ORIGINS, assertEnv } from "./lib/env.js";
+import { app, server, io } from "./lib/socket.js";
 import mongoSanitize from "@exortek/express-mongo-sanitize";
 
 import dns from "node:dns";
 dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
 
-const __dirname = path.resolve();
+assertEnv();
 
+const __dirname = path.resolve();
 const PORT = ENV.PORT || 3000;
+
+// Render (and most hosts) terminate TLS in a proxy: needed for correct client IPs / secure cookies
+app.set("trust proxy", 1);
+app.disable("x-powered-by");
+
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+app.use(compression());
+
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      // no Origin header = same-origin / server-to-server / health checks
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+      cb(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  }),
+);
+
+// cheap liveness probe for Render, registered before the heavy middleware
+app.get("/health", (_, res) =>
+  res.status(200).json({ status: "ok", db: mongoose.connection.readyState === 1 }),
+);
+
+app.use(express.json({ limit: "5mb" })); // req.body
 app.use(
   mongoSanitize({
     replaceWith: "", // Replace matched chars with this string
@@ -25,16 +55,9 @@ app.use(
     skipRoutes: [], // Routes to skip (string or RegExp)
     recursive: true, // Sanitize nested objects
     maxDepth: null, // Max recursion depth (null = unlimited)
-    onSanitize: ({ key, originalValue, sanitizedValue }) => {
-      console.log(`Sanitized ${key}`);
+    onSanitize: ({ key }) => {
+      console.warn(`Sanitized ${key}`);
     },
-  }),
-);
-app.use(express.json({ limit: "5mb" })); // req.body
-app.use(
-  cors({
-    origin: [ENV.CLIENT_URL, "http://localhost:5173"],
-    credentials: true,
   }),
 );
 app.use(cookieParser());
@@ -42,16 +65,39 @@ app.use(cookieParser());
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 
-// make ready for deployment
-if (ENV.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/dist")));
+// the frontend is hosted on Vercel; only serve the bundle if it was built next to the API
+const distPath = path.join(__dirname, "../frontend/dist");
+if (IS_PROD && fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
 
   app.get("*", (_, res) => {
-    res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
+    res.sendFile(path.join(distPath, "index.html"));
   });
 }
 
+// last-resort error handler (e.g. CORS rejection, malformed JSON) - never leak stack traces
+// eslint-disable-next-line no-unused-vars
+app.use((err, _req, res, _next) => {
+  const status = err.status || err.statusCode || 500;
+  if (status >= 500) console.error("Unhandled error:", err.message);
+  res.status(status).json({ message: status >= 500 ? "Internal server error" : err.message });
+});
+
+// connect to the database first so we never accept traffic we cannot serve
+await connectDB();
+
 server.listen(PORT, () => {
   console.log("Server running on port: " + PORT);
-  connectDB();
 });
+
+const shutdown = (signal) => {
+  console.log(`${signal} received, shutting down`);
+  io.close();
+  server.close(async () => {
+    await mongoose.connection.close();
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 10000).unref();
+};
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));

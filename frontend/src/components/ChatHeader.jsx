@@ -1,7 +1,9 @@
-import { XIcon } from "lucide-react";
+import { ArrowLeftIcon, XIcon } from "lucide-react";
+import { motion } from "motion/react";
 import { useChatStore } from "../store/useChatStore";
 import { useEffect } from "react";
 import { useAuthStore } from "../store/useAuthStore";
+import Avatar from "./Avatar";
 
 function ChatHeader() {
   const { selectedUser, setSelectedUser } = useChatStore();
@@ -20,26 +22,41 @@ function ChatHeader() {
   }, [setSelectedUser]);
 
   return (
-    <div
-      className="flex justify-between items-center border-b bg-slate-900/30
-   border-slate-700/50 max-h-[84px] px-6 flex-1"
-    >
-      <div className="flex  items-center space-x-3">
-        <div className={`avatar ${isOnline ? "online" : "offline"}`}>
-          <div className="w-12 rounded-full">
-            <img src={selectedUser.profilePic || "/avatar.png"} alt={selectedUser.fullName} />
-          </div>
-        </div>
+    <div className="flex h-[76px] shrink-0 items-center justify-between border-b border-white/10 bg-black/20 px-4 backdrop-blur-xl sm:px-6">
+      <div className="flex items-center gap-3">
+        {/* phones only: back to the list */}
+        <button
+          onClick={() => setSelectedUser(null)}
+          className="-ml-1 flex size-9 items-center justify-center rounded-xl text-slate-300 hover:bg-white/10 md:hidden"
+          aria-label="Back to conversations"
+        >
+          <ArrowLeftIcon className="size-5" />
+        </button>
+
+        <Avatar src={selectedUser.profilePic} alt={selectedUser.fullName} online={isOnline} />
 
         <div>
-          <h3 className="text-slate-200 font-medium">{selectedUser.fullName}</h3>
-          <p className="text-slate-400 text-sm">{isOnline ? "Online" : "Offline"}</p>
+          <h3 className="font-semibold text-white">{selectedUser.fullName}</h3>
+          <motion.p
+            key={String(isOnline)}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`text-sm ${isOnline ? "text-emerald-400" : "text-slate-500"}`}
+          >
+            {isOnline ? "Online" : "Offline"}
+          </motion.p>
         </div>
       </div>
 
-      <button onClick={() => setSelectedUser(null)}>
-        <XIcon className="w-5 h-5 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer" />
-      </button>
+      <motion.button
+        whileHover={{ rotate: 90 }}
+        whileTap={{ scale: 0.85 }}
+        onClick={() => setSelectedUser(null)}
+        className="hidden size-9 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-white/10 hover:text-white md:flex"
+        aria-label="Close conversation"
+      >
+        <XIcon className="size-5" />
+      </motion.button>
     </div>
   );
 }

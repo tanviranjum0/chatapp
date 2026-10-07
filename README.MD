@@ -13,7 +13,7 @@ Highlights:
 - 🧰 REST API with Node.js & Express
 - 🧱 MongoDB for Data Persistence
 - 🚦 API Rate-Limiting powered by Arcjet
-- 🎨 Beautiful UI with React, Tailwind CSS & DaisyUI
+- 🎨 Beautiful UI with React, Tailwind CSS & Motion (animations)
 - 🧠 Zustand for State Management
 - 🧑‍💻 Git & GitHub Workflow (branches, PRs, merges)
 - 🚀 Easy Deployment (free-tier friendly with Sevalla)
@@ -63,3 +63,23 @@ cd frontend
 npm install
 npm run dev
 ```
+
+---
+
+## 🚀 Deployment (Vercel + Render)
+
+**Backend → Render** (uses [`render.yaml`](render.yaml))
+
+1. Render dashboard → New → Blueprint → select this repo.
+2. Fill in the secrets it asks for (`MONGO_URI`, `JWT_SECRET` 32+ chars, Cloudinary, Resend, Arcjet).
+3. Set `CLIENT_URL` to your Vercel URL (no trailing slash; comma separate several).
+4. In MongoDB Atlas allow Render's outbound IPs (or `0.0.0.0/0`).
+5. Health check: `GET /health`.
+
+**Frontend → Vercel**
+
+1. New Project → import the repo, set **Root Directory** to `frontend` (Vite is auto-detected, `vercel.json` handles SPA routing + caching).
+2. Add env var `VITE_API_URL=https://<your-service>.onrender.com/api`.
+3. Deploy, then put the resulting URL into Render's `CLIENT_URL`.
+
+Auth uses an `HttpOnly; Secure; SameSite=None` cookie so it works across the two domains.

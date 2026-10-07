@@ -1,7 +1,8 @@
 import { Resend } from "resend";
 import { ENV } from "./env.js";
 
-export const resendClient = new Resend(ENV.RESEND_API_KEY);
+// Resend throws on construction without a key; keep the API usable (emails just skipped) instead
+export const resendClient = ENV.RESEND_API_KEY ? new Resend(ENV.RESEND_API_KEY) : null;
 
 export const sender = {
   email: ENV.EMAIL_FROM,

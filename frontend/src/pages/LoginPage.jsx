@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
-import BorderAnimatedContainer from "../components/BorderAnimatedContainer";
-import { MessageCircleIcon, MailQuestionMark, MailIcon, LoaderIcon, LockIcon } from "lucide-react";
+import { MailIcon, LoaderIcon, LockIcon, MessageCircleHeartIcon } from "lucide-react";
 import { Link } from "react-router";
+import { motion } from "motion/react";
+import AuthShell from "../components/AuthShell";
+import { fadeUp } from "../lib/motion";
+import AuthField from "../components/AuthField";
 
 function LoginPage() {
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -14,104 +17,51 @@ function LoginPage() {
   };
 
   return (
-    <div className="w-full flex items-center justify-center bg-[#212121]">
-      <div className="relative w-full">
-        <div className="w-full bg-[#212121] flex flex-col md:flex-row">
-          {/* FORM CLOUMN - LEFT SIDE */}
-          <div className="md:w-1/2 p-8 flex items-center justify-center md:border-r border-slate-600/30">
-            <div className="w-full max-w-md">
-              {/* HEADING TEXT */}
-              <div className="text-center mb-8">
-                <MailQuestionMark className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                <h2 className="text-2xl font-bold  text-slate-200 mb-2">Welcome Back</h2>
-                <p className="text-slate-400">Login to access to your account</p>
-              </div>
+    <AuthShell
+      icon={MessageCircleHeartIcon}
+      title="Welcome Back"
+      subtitle="Login to access to your account"
+      image="/login.png"
+      tagline="Connect anytime, anywhere"
+      footer={
+        <Link to="/signup" className="auth-link">
+          Don't have an account? Sign Up
+        </Link>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <AuthField
+          label="Email"
+          icon={MailIcon}
+          type="email"
+          autoComplete="email"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          placeholder="johndoe@gmail.com"
+        />
+        <AuthField
+          label="Password"
+          icon={LockIcon}
+          type="password"
+          autoComplete="current-password"
+          value={formData.password}
+          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+          placeholder="Enter your password"
+        />
 
-              {/* FORM */}
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* EMAIL INPUT */}
-                <div>
-                  <label className="auth-input-label">Email</label>
-                  <div className="relative">
-                    <MailIcon className="auth-input-icon" />
-
-                    <input
-                      style={{
-                        background: "rgb(6 182 212 / 0.1)"
-                      }}
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="input"
-                      placeholder="johndoe@gmail.com"
-                    />
-                  </div>
-                </div>
-
-                {/* PASSWORD INPUT */}
-                <div>
-                  <label className="auth-input-label">Password</label>
-                  <div className="relative">
-                    <LockIcon className="auth-input-icon" />
-
-                    <input
-                      style={{
-                        background: "rgb(6 182 212 / 0.1)"
-                      }}
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="input"
-                      placeholder="Enter your password"
-                    />
-                  </div>
-                </div>
-
-                {/* SUBMIT BUTTON */}
-                <button style={{
-                  background: "rgb(6 182 212 / 0.1)",
-                  color: "#91a5ba"
-                }} className="auth-btn" type="submit" disabled={isLoggingIn}>
-                  {isLoggingIn ? (
-                    <LoaderIcon className="w-full h-5 animate-spin text-center" />
-                  ) : (
-                    "Sign In"
-                  )}
-                </button>
-              </form>
-
-              <div className="mt-6 text-center">
-                <Link style={{
-                  color: "#91a5ba"
-                }} to="/signup" className="auth-link">
-                  Don't have an account? Sign Up
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* FORM ILLUSTRATION - RIGHT SIDE */}
-          <div className="hidden md:w-1/2 md:flex items-center justify-center p-6 bg-[#212121]">
-            <div>
-              <img
-                src="/login.png"
-                alt="People using mobile devices"
-                className="w-full h-auto object-contain"
-              />
-              <div className="mt-6 text-center">
-                <h3 className="text-xl font-medium text-cyan-400">Connect anytime, anywhere</h3>
-
-                <div className="mt-4 flex justify-center gap-4">
-                  <span className="auth-badge">Free</span>
-                  <span className="auth-badge">Easy Setup</span>
-                  <span className="auth-badge">Private</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+        <motion.div variants={fadeUp}>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            className="auth-btn"
+            type="submit"
+            disabled={isLoggingIn}
+          >
+            {isLoggingIn ? <LoaderIcon className="mx-auto size-5 animate-spin" /> : "Sign In"}
+          </motion.button>
+        </motion.div>
+      </form>
+    </AuthShell>
   );
 }
 export default LoginPage;
