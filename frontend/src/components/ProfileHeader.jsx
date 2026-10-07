@@ -1,11 +1,13 @@
-import { useState, useRef } from "react";
+import { Suspense, lazy, useState, useRef } from "react";
 import { LogOutIcon, VolumeOffIcon, Volume2Icon, CameraIcon, SettingsIcon, BotIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 import Avatar from "./Avatar";
-import SettingsModal from "./SettingsModal";
-import BotsModal from "./BotsModal";
+import toast from "react-hot-toast";
+import { resizeToSquare } from "../lib/imageUtils";
+const SettingsModal = lazy(() => import("./SettingsModal"));
+const BotsModal = lazy(() => import("./BotsModal"));
 
 const mouseClickSound = new Audio("/sounds/on-off.mp3");
 
@@ -13,26 +15,30 @@ const iconBtn =
   "flex size-10 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-white/10 hover:text-white";
 
 function ProfileHeader() {
-  const { logout, authUser, updateProfile } = useAuthStore();
-  const { isSoundEnabled, toggleSound } = useChatStore();
+  const logout = useAuthStore((s) => s.logout);
+  const authUser = useAuthStore((s) => s.authUser);
+  const updateProfile = useAuthStore((s) => s.updateProfile);
+  const isSoundEnabled = useChatStore((s) => s.isSoundEnabled);
+  const toggleSound = useChatStore((s) => s.toggleSound);
   const [selectedImg, setSelectedImg] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [botsOpen, setBotsOpen] = useState(false);
 
   const fileInputRef = useRef(null);
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
+    e.target.value = "";
     if (!file) return;
-
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-
-    reader.onloadend = async () => {
-      const base64Image = reader.result;
-      setSelectedImg(base64Image);
-      await updateProfile({ profilePic: base64Image });
-    };
+    try {
+      // shrunk to 512px first: a phone photo is several MB, an avatar needs ~80KB
+      const base64Image = await resizeToSquare(file);
+      setSelectedImg(base64Image); // instant preview
+      const ok = await updateProfile({ profilePic: base64Image });
+      if (!ok) setSelectedImg(null);
+    } catch (err) {
+      toast.error(err.message);
+    }
   };
 
   return (
@@ -125,8 +131,10 @@ function ProfileHeader() {
           </motion.button>
         </div>
       </div>
-      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-      <BotsModal open={botsOpen} onClose={() => setBotsOpen(false)} />
+      <Suspense fallback={null}>
+        {settingsOpen && <SettingsModal open onClose={() => setSettingsOpen(false)} />}
+        {botsOpen && <BotsModal open onClose={() => setBotsOpen(false)} />}
+      </Suspense>
     </div>
   );
 }

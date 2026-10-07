@@ -15,6 +15,8 @@ import {
   withReplyPreviews,
 } from "../lib/messages.js";
 import { handleMessageToBot } from "../lib/bots.js";
+import { io, userRoom } from "../lib/socket.js";
+import { AppError, sendError } from "../lib/errors.js";
 
 const MESSAGE_PAGE_SIZE = 300;
 const MAX_TEXT = 2000;
@@ -29,17 +31,58 @@ const visibleUsersFilter = (me) => ({
   $or: [{ isBot: { $ne: true } }, { builtin: { $exists: true } }, { ownerId: me }],
 });
 
-export const getAllContacts = async (req, res) => {
+// the only user fields other people may ever see (no email, no hashes)
+const PUBLIC_FIELDS = "fullName profilePic isBot builtin ownerId";
+
+const maskEmail = (email = "") => {
+  const [name, domain] = email.split("@");
+  if (!domain) return "";
+  return `${name.slice(0, 2)}${"*".repeat(Math.max(1, Math.min(name.length - 2, 5)))}@${domain}`;
+};
+
+// GET /messages/contacts?q=  - people are found by searching, the whole user list is never shown
+export const searchContacts = async (req, res) => {
   try {
-    const users = await User.find(visibleUsersFilter(req.user._id))
-      .select("-password")
+    const q = typeof req.query.q === "string" ? req.query.q.trim().slice(0, 100) : "";
+    if (q.length < 2) return res.status(200).json([]);
+
+    const rx = escapeRegex(q);
+    const me = req.user._id;
+    const users = await User.find({
+      ...visibleUsersFilter(me),
+      $and: [
+        {
+          $or: [
+            { fullName: { $regex: rx, $options: "i" } },
+            // emails only match from the start, so the list can't be mined with fragments like "gmail"
+            { isBot: { $ne: true }, email: { $regex: `^${rx}`, $options: "i" } },
+          ],
+        },
+      ],
+    })
+      .select(`${PUBLIC_FIELDS} email`)
       .sort({ fullName: 1 })
+      .limit(20)
       .lean();
 
-    res.status(200).json(users);
+    res.status(200).json(
+      users.map(({ email, ...u }) => ({ ...u, emailHint: u.isBot ? undefined : maskEmail(email) })),
+    );
   } catch (error) {
-    console.error("Error in getAllContacts:", error.message);
-    res.status(500).json({ message: "Internal server error" });
+    sendError(res, error, "searchContacts");
+  }
+};
+
+export const getUserById = async (req, res) => {
+  try {
+    if (!isId(req.params.id)) throw new AppError(400, "Invalid user id.", "BAD_ID");
+    const user = await User.findOne({ _id: req.params.id, ...{ $or: [{ isBot: { $ne: true } }, { builtin: { $exists: true } }, { ownerId: req.user._id }] } })
+      .select(PUBLIC_FIELDS)
+      .lean();
+    if (!user) throw new AppError(404, "User not found.", "NOT_FOUND");
+    res.status(200).json(user);
+  } catch (error) {
+    sendError(res, error, "getUserById");
   }
 };
 
@@ -90,7 +133,7 @@ export const getMessagesByUserId = async (req, res) => {
     res.status(200).json(await withReplyPreviews(messages));
   } catch (error) {
     console.error("Error in getMessages controller: ", error.message);
-    res.status(500).json({ message: "Internal server error" });
+    sendError(res, error);
   }
 };
 
@@ -190,7 +233,7 @@ export const sendMessage = async (req, res) => {
     }
   } catch (error) {
     console.error("Error in sendMessage controller: ", error.message);
-    res.status(500).json({ message: "Internal server error" });
+    sendError(res, error);
   }
 };
 
@@ -228,7 +271,7 @@ export const editMessage = async (req, res) => {
     res.status(200).json(out);
   } catch (error) {
     console.error("Error in editMessage:", error.message);
-    res.status(500).json({ message: "Internal server error" });
+    sendError(res, error);
   }
 };
 
@@ -247,7 +290,7 @@ export const deleteMessage = async (req, res) => {
     res.status(200).json(out);
   } catch (error) {
     console.error("Error in deleteMessage:", error.message);
-    res.status(500).json({ message: "Internal server error" });
+    sendError(res, error);
   }
 };
 
@@ -276,7 +319,7 @@ export const reactToMessage = async (req, res) => {
     res.status(200).json(out);
   } catch (error) {
     console.error("Error in reactToMessage:", error.message);
-    res.status(500).json({ message: "Internal server error" });
+    sendError(res, error);
   }
 };
 
@@ -316,7 +359,7 @@ export const forwardMessage = async (req, res) => {
     res.status(201).json({ forwarded: count });
   } catch (error) {
     console.error("Error in forwardMessage:", error.message);
-    res.status(500).json({ message: "Internal server error" });
+    sendError(res, error);
   }
 };
 
@@ -341,29 +384,75 @@ export const searchMessages = async (req, res) => {
     res.status(200).json(results);
   } catch (error) {
     console.error("Error in searchMessages:", error.message);
-    res.status(500).json({ message: "Internal server error" });
+    sendError(res, error);
   }
 };
 
+const lastMessagePreview = (m) => ({
+  _id: m._id,
+  senderId: m.senderId,
+  createdAt: m.createdAt,
+  deleted: Boolean(m.deletedAt),
+  text: m.deletedAt ? "" : (m.text || "").slice(0, 80),
+  hasImage: !m.deletedAt && Boolean(m.image),
+  fileName: !m.deletedAt ? m.file?.name : undefined,
+});
+
+// one row per conversation, newest first, with the last message and how many are unread
 export const getChatPartners = async (req, res) => {
   try {
-    const loggedInUserId = req.user._id;
-
-    // distinct() is answered straight from the indexes - no need to load every message
-    const [sentTo, receivedFrom] = await Promise.all([
-      Message.distinct("receiverId", { senderId: loggedInUserId }),
-      Message.distinct("senderId", { receiverId: loggedInUserId }),
+    const me = req.user._id;
+    const rows = await Message.aggregate([
+      { $match: { $or: [{ senderId: me }, { receiverId: me }] } },
+      { $sort: { createdAt: -1 } },
+      {
+        $group: {
+          _id: { $cond: [{ $eq: ["$senderId", me] }, "$receiverId", "$senderId"] },
+          last: { $first: "$$ROOT" },
+          unread: {
+            $sum: {
+              $cond: [
+                { $and: [{ $eq: ["$receiverId", me] }, { $eq: [{ $type: "$readAt" }, "missing"] }, { $not: ["$deletedAt"] }] },
+                1,
+                0,
+              ],
+            },
+          },
+        },
+      },
+      { $sort: { "last.createdAt": -1 } },
+      { $limit: 200 },
     ]);
 
-    const chatPartnerIds = [...new Set([...sentTo, ...receivedFrom].map(String))];
-
-    const chatPartners = await User.find({ _id: { $in: chatPartnerIds } })
-      .select("-password")
+    const users = await User.find({ _id: { $in: rows.map((r) => r._id) } })
+      .select(PUBLIC_FIELDS)
       .lean();
+    const byId = new Map(users.map((u) => [String(u._id), u]));
 
-    res.status(200).json(chatPartners);
+    res.status(200).json(
+      rows
+        .filter((r) => byId.has(String(r._id)))
+        .map((r) => ({ ...byId.get(String(r._id)), lastMessage: lastMessagePreview(r.last), unreadCount: r.unread })),
+    );
   } catch (error) {
-    console.error("Error in getChatPartners: ", error.message);
-    res.status(500).json({ message: "Internal server error" });
+    sendError(res, error, "getChatPartners");
+  }
+};
+
+// POST /messages/read/:id  - the open conversation has been seen
+export const markRead = async (req, res) => {
+  try {
+    if (!isId(req.params.id)) throw new AppError(400, "Invalid user id.", "BAD_ID");
+    const now = new Date();
+    const result = await Message.updateMany(
+      { senderId: req.params.id, receiverId: req.user._id, readAt: { $exists: false } },
+      { $set: { readAt: now } },
+    );
+    if (result.modifiedCount > 0) {
+      io.to(userRoom(req.params.id)).emit("messagesRead", { by: String(req.user._id), at: now.toISOString() });
+    }
+    res.status(200).json({ read: result.modifiedCount });
+  } catch (error) {
+    sendError(res, error, "markRead");
   }
 };

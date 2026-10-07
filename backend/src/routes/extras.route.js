@@ -2,7 +2,7 @@ import express from "express";
 import rateLimit from "express-rate-limit";
 import { protectRoute } from "../middleware/auth.middleware.js";
 import { arcjetProtection } from "../middleware/arcjet.middleware.js";
-import { aiInfo, getSuggestions, translateMessage } from "../controllers/ai.controller.js";
+import { aiInfo, getSuggestions, translateBatch, translateMessage } from "../controllers/ai.controller.js";
 import {
   createBot,
   deleteBot,
@@ -42,7 +42,8 @@ export const aiRouter = express.Router();
 aiRouter.use(arcjetProtection, protectRoute);
 aiRouter.get("/info", aiInfo);
 aiRouter.post("/suggestions", perUser(20), getSuggestions);
-aiRouter.post("/translate", perUser(40), translateMessage);
+aiRouter.post("/translate", perUser(60), translateMessage);
+aiRouter.post("/translate-batch", perUser(30), translateBatch);
 
 export const botRouter = express.Router();
 botRouter.use(arcjetProtection, protectRoute);

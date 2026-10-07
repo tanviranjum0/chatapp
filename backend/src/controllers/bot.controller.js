@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { sendError } from "../lib/errors.js";
 import User from "../models/User.js";
 import Message from "../models/Message.js";
 import { assertPublicHttpsUrl } from "../lib/safeFetch.js";
@@ -33,7 +34,7 @@ export const listBots = async (req, res) => {
     res.status(200).json(bots.map((b) => present(req, b)));
   } catch (error) {
     console.error("listBots:", error.message);
-    res.status(500).json({ message: "Internal server error" });
+    sendError(res, error);
   }
 };
 
@@ -72,7 +73,7 @@ export const createBot = async (req, res) => {
     res.status(201).json(present(req, full));
   } catch (error) {
     console.error("createBot:", error.message);
-    res.status(500).json({ message: "Internal server error" });
+    sendError(res, error);
   }
 };
 
@@ -104,7 +105,7 @@ export const updateBot = async (req, res) => {
     res.status(200).json(present(req, bot));
   } catch (error) {
     console.error("updateBot:", error.message);
-    res.status(500).json({ message: "Internal server error" });
+    sendError(res, error);
   }
 };
 
@@ -123,7 +124,7 @@ export const deleteBot = async (req, res) => {
     res.status(200).json({ message: "Bot deleted" });
   } catch (error) {
     console.error("deleteBot:", error.message);
-    res.status(500).json({ message: "Internal server error" });
+    sendError(res, error);
   }
 };
 
@@ -145,6 +146,6 @@ export const incomingWebhook = async (req, res) => {
     res.status(200).json({ ok: true });
   } catch (error) {
     console.error("incomingWebhook:", error.message);
-    res.status(500).json({ message: "Internal server error" });
+    sendError(res, error);
   }
 };

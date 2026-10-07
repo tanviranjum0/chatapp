@@ -10,8 +10,11 @@ const headBtn =
   "flex size-10 items-center justify-center rounded-xl text-slate-300 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent";
 
 function ChatHeader() {
-  const { selectedUser, setSelectedUser, searchOpen, setSearchOpen } = useChatStore();
-  const { onlineUsers } = useAuthStore();
+  const selectedUser = useChatStore((s) => s.selectedUser);
+  const setSelectedUser = useChatStore((s) => s.setSelectedUser);
+  const searchOpen = useChatStore((s) => s.searchOpen);
+  const setSearchOpen = useChatStore((s) => s.setSearchOpen);
+  const onlineUsers = useAuthStore((s) => s.onlineUsers);
   const callStatus = useCallStore((s) => s.status);
   const startCall = useCallStore((s) => s.startCall);
 
@@ -31,7 +34,7 @@ function ChatHeader() {
   }, [setSelectedUser]);
 
   return (
-    <div className="flex h-[76px] shrink-0 items-center justify-between border-b border-white/10 bg-black/20 px-3 backdrop-blur-xl sm:px-6">
+    <div className="flex h-[76px] shrink-0 items-center justify-between border-b border-white/10 bg-black/20 px-3 sm:px-6">
       <div className="flex min-w-0 items-center gap-3">
         {/* phones only: back to the list */}
         <button

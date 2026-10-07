@@ -27,6 +27,15 @@ Highlights:
 - 📞 Voice & 🎥 video calls with WebRTC (peer to peer, mute / camera toggle, ring / decline / busy handling)
 - 🌗 Dark / light / system theme, text size up to 130%, high contrast and reduce motion modes
 
+### Accounts & reliability
+
+- 📧 Email verification at sign up (6-digit code, 10 minutes, 5 tries) and optional two-factor login codes (Settings → Security)
+- 🖼️ "Add a profile picture" pop up right after sign up (photos are resized in the browser first)
+- 🔎 People are found by searching a name or the start of an email address - the user list is never shown
+- 🔔 Unread badges, last-message previews, read receipts and a live unread count in the tab title; the chat list updates by itself
+- 🛟 One error format everywhere (`{ message, code }`), retries for a sleeping server, offline / reconnecting banner, crash screen
+- 🎙️ Calls: speaker menu / mute, local recording (the other person is told), screen sharing in voice and video calls
+
 ### Modern / AI add-ons
 
 - ✨ Smart reply suggestions for the last message
@@ -88,6 +97,11 @@ Create a bot from the 🤖 button in the sidebar.
 | DELETE | `/api/messages/:id` | delete own message for everyone |
 | POST | `/api/messages/react/:id` | toggle / swap your reaction |
 | POST | `/api/messages/forward` | forward a message to up to 5 users |
+| GET | `/api/messages/contacts?q=` | find people by name / email prefix (min 2 chars) |
+| POST | `/api/messages/read/:userId` | mark a conversation as read |
+| POST | `/api/auth/signup`, `/verify-signup`, `/login`, `/verify-login`, `/resend-code` | email-code sign up and 2FA login |
+| POST | `/api/auth/two-factor/start`, `/confirm`, `/disable` | manage two-factor authentication |
+| POST | `/api/ai/translate-batch` | translate up to 20 messages at once |
 | GET | `/api/messages/search/:userId?q=&type=files` | search a conversation |
 | GET | `/api/messages/:userId?around=:messageId` | history window around a message |
 | POST | `/api/ai/suggestions`, `/api/ai/translate` | smart replies, translation |

@@ -1,5 +1,8 @@
-import { MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
+import { useState } from "react";
+import { LoaderIcon, MonitorIcon, MoonIcon, ShieldCheckIcon, ShieldOffIcon, SunIcon } from "lucide-react";
 import Modal from "./Modal";
+import VerifyCodeForm from "./VerifyCodeForm";
+import { useAuthStore } from "../store/useAuthStore";
 import { usePrefsStore } from "../store/usePrefsStore";
 import { LANGUAGES } from "../lib/chatUtils.js";
 
@@ -49,6 +52,101 @@ function Section({ title, children }) {
       <h3 className="mb-2 mt-4 text-xs font-bold uppercase tracking-wider text-slate-500">{title}</h3>
       {children}
     </section>
+  );
+}
+
+// e-mail code on every login (needs the password to change, and a code to turn on)
+function SecuritySection() {
+  const authUser = useAuthStore((s) => s.authUser);
+  const pending = useAuthStore((s) => s.pending);
+  const startTwoFactor = useAuthStore((s) => s.startTwoFactor);
+  const disableTwoFactor = useAuthStore((s) => s.disableTwoFactor);
+  const cancelPending = useAuthStore((s) => s.cancelPending);
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [asking, setAsking] = useState(false);
+
+  const enabled = Boolean(authUser?.twoFactorEnabled);
+  const confirming = pending?.purpose === "enable2fa";
+
+  const run = async (fn) => {
+    setBusy(true);
+    const ok = await fn(password);
+    setBusy(false);
+    if (ok) {
+      setPassword("");
+      setAsking(false);
+    }
+  };
+
+  return (
+    <Section title="Security">
+      <div className="flex items-start gap-3 py-2">
+        {enabled ? (
+          <ShieldCheckIcon className="mt-0.5 size-6 shrink-0 text-emerald-400" />
+        ) : (
+          <ShieldOffIcon className="mt-0.5 size-6 shrink-0 text-slate-400" />
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="font-medium text-slate-100">Two-factor authentication</p>
+          <p className="text-sm text-slate-400">
+            {enabled
+              ? "On: we email a 6-digit code to " + authUser.email + " every time you log in."
+              : "Off: turn it on to require an emailed code in addition to your password."}
+          </p>
+        </div>
+      </div>
+
+      {confirming ? (
+        <VerifyCodeForm onBack={cancelPending} compact />
+      ) : asking ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            run(enabled ? disableTwoFactor : startTwoFactor);
+          }}
+          className="space-y-3"
+        >
+          <label htmlFor="sec-pw" className="block text-sm font-medium text-slate-300">
+            Confirm your password
+          </label>
+          <input
+            id="sec-pw"
+            type="password"
+            autoComplete="current-password"
+            autoFocus
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-brand-500/70"
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setAsking(false);
+                setPassword("");
+              }}
+              className="flex-1 rounded-xl border border-white/10 py-2.5 text-sm font-medium text-slate-300 hover:bg-white/[0.07]"
+            >
+              Cancel
+            </button>
+            <button
+              disabled={!password || busy}
+              className="flex-1 rounded-xl bg-brand-600 py-2.5 text-sm font-semibold text-snow disabled:opacity-40"
+            >
+              {busy ? <LoaderIcon className="mx-auto size-4 animate-spin" /> : enabled ? "Turn off" : "Send me a code"}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <button
+          onClick={() => setAsking(true)}
+          className="w-full rounded-xl border border-white/10 py-2.5 text-sm font-medium text-slate-200 hover:bg-white/[0.07]"
+        >
+          {enabled ? "Turn off two-factor authentication" : "Turn on two-factor authentication"}
+        </button>
+      )}
+    </Section>
   );
 }
 
@@ -116,6 +214,8 @@ function SettingsModal({ open, onClose }) {
             onChange={(v) => setPref({ reduceMotion: v })}
           />
         </Section>
+
+        <SecuritySection />
 
         <Section title="Smart features">
           <Toggle

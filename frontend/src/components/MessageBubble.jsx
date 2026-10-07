@@ -1,8 +1,10 @@
 import { memo, useEffect, useRef, useState } from "react";
-import { motion } from "motion/react";
 import toast from "react-hot-toast";
 import {
   BanIcon,
+  CheckCheckIcon,
+  CheckIcon,
+  ClockIcon,
   CopyIcon,
   DownloadIcon,
   ExternalLinkIcon,
@@ -101,7 +103,7 @@ function ReplyQuote({ preview, mine, onJump }) {
   );
 }
 
-const MessageBubble = memo(function MessageBubble({ msg, mine, flash, onJump }) {
+const MessageBubble = memo(function MessageBubble({ msg, mine, flash, fresh, onJump }) {
   const { authUser } = useAuthStore();
   const translation = useChatStore((s) => s.translations[msg._id]);
   const {
@@ -114,8 +116,11 @@ const MessageBubble = memo(function MessageBubble({ msg, mine, flash, onJump }) 
     hideTranslation,
   } = useChatStore.getState();
   const translateLang = usePrefsStore((s) => s.translateLang);
+  const autoTranslate = usePrefsStore((s) => s.autoTranslate);
 
   const [showTools, setShowTools] = useState(false); // tap to reveal on touch screens
+  // the action toolbar is built lazily (first hover / focus / tap): 300 bubbles x 7 buttons is a lot of DOM
+  const [armed, setArmed] = useState(false);
   const [picker, setPicker] = useState(false);
   const [bigPicker, setBigPicker] = useState(false);
   const rootRef = useRef(null);
@@ -173,18 +178,21 @@ const MessageBubble = memo(function MessageBubble({ msg, mine, flash, onJump }) 
     : "rounded-bl-md border border-white/10 bg-white/[0.07] text-slate-100";
 
   return (
-    <motion.div
+    <div
       id={`msg-${msg._id}`}
-      layout="position"
-      initial={{ opacity: 0, y: 16, scale: 0.92 }}
-      animate={{ opacity: msg.isOptimistic ? 0.7 : 1, y: 0, scale: 1 }}
-      transition={{ type: "spring", stiffness: 380, damping: 28 }}
       style={{ transformOrigin: mine ? "bottom right" : "bottom left" }}
-      className={`flex ${mine ? "justify-end" : "justify-start"}`}
+      className={`msg-row flex ${mine ? "justify-end" : "justify-start"} ${fresh ? "msg-in" : ""} ${
+        msg.isOptimistic ? "opacity-70" : ""
+      }`}
     >
-      <div ref={rootRef} className="group relative max-w-[88%] sm:max-w-[72%]">
+      <div
+        ref={rootRef}
+        onPointerEnter={() => !armed && setArmed(true)}
+        onFocus={() => !armed && setArmed(true)}
+        className="group relative max-w-[88%] sm:max-w-[72%]"
+      >
         {/* hover / tap toolbar */}
-        {!deleted && !msg.isOptimistic && (
+        {!deleted && !msg.isOptimistic && (armed || showTools || picker) && (
           <div
             className={`absolute -top-9 z-20 flex items-center gap-0.5 rounded-xl border border-white/10 bg-ink-800/95 p-1 shadow-soft backdrop-blur-xl transition-opacity ${toolsVisible} ${
               mine ? "right-0" : "left-0"
@@ -275,8 +283,12 @@ const MessageBubble = memo(function MessageBubble({ msg, mine, flash, onJump }) 
           </div>
         ) : (
           <div
+            tabIndex={0}
             onClick={(e) => {
-              if (!e.target.closest("a,button,img")) setShowTools((v) => !v);
+              if (!e.target.closest("a,button,img")) {
+                setArmed(true);
+                setShowTools((v) => !v);
+              }
             }}
             className={`rounded-2xl px-4 py-2.5 shadow-lg ${bubbleTone} ${flash ? "msg-flash" : ""}`}
           >
@@ -288,11 +300,11 @@ const MessageBubble = memo(function MessageBubble({ msg, mine, flash, onJump }) 
             {msg.replyPreview && <ReplyQuote preview={msg.replyPreview} mine={mine} onJump={onJump} />}
 
             {msg.image && (
-              <motion.img
-                whileHover={{ scale: 1.02 }}
+              <img
                 src={msg.image}
-                alt="Shared"
+                alt="Photo in chat"
                 loading="lazy"
+                decoding="async"
                 onClick={() => useChatStore.setState({ lightbox: msg.image })}
                 className="mb-1 max-h-60 w-full cursor-zoom-in rounded-xl object-cover"
               />
@@ -329,26 +341,46 @@ const MessageBubble = memo(function MessageBubble({ msg, mine, flash, onJump }) 
               <LinkCard key={u} url={u} mine={mine} />
             ))}
 
-            {translation?.status === "done" && (
+            {translation?.status === "done" && !translation.same && (
               <div className="mt-2 border-t border-current/20 pt-2 text-sm">
                 <p className="break-words whitespace-pre-wrap">{translation.text}</p>
                 <button
                   onClick={() => hideTranslation(msg._id)}
                   className="mt-1 text-[11px] underline opacity-75 hover:opacity-100"
                 >
-                  Translated to {LANGUAGES[translation.lang] || translation.lang} · show original only
+                  Translated to {LANGUAGES[translation.lang] || translation.lang} · hide
                 </button>
               </div>
+            )}
+            {translation?.status === "done" && translation.same && !autoTranslate && (
+              <p className="mt-1 text-[11px] opacity-70">Already in {LANGUAGES[translation.lang] || translation.lang}</p>
             )}
             {translation?.status === "loading" && (
               <p className="mt-2 flex items-center gap-1 text-xs opacity-75">
                 <Loader2Icon className="size-3 animate-spin" /> Translating…
               </p>
             )}
+            {translation?.status === "error" && (
+              <button
+                onClick={() => translateMessage(msg._id, translation.lang)}
+                className="mt-2 flex items-center gap-1 text-xs underline opacity-80 hover:opacity-100"
+              >
+                Couldn't translate - tap to retry
+              </button>
+            )}
 
             <p className="mt-1 text-right text-[11px] opacity-70">
               {msg.editedAt && <span className="mr-1">edited ·</span>}
               {timeLabel(msg.createdAt)}
+              {mine && (
+                <span
+                  className={`ml-1 inline-flex align-[-2px] ${msg.readAt ? "text-sky-200 opacity-100" : ""}`}
+                  role="img"
+                  aria-label={msg.isOptimistic ? "Sending" : msg.readAt ? "Read" : "Sent"}
+                >
+                  {msg.isOptimistic ? <ClockIcon className="size-3" /> : msg.readAt ? <CheckCheckIcon className="size-3.5" /> : <CheckIcon className="size-3.5" />}
+                </span>
+              )}
             </p>
           </div>
         )}
@@ -377,7 +409,7 @@ const MessageBubble = memo(function MessageBubble({ msg, mine, flash, onJump }) 
           </div>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 });
 

@@ -1,4 +1,11 @@
 import cloudinary from "./cloudinary.js";
+import { AppError } from "./errors.js";
+
+// any failure talking to the file host (bad credentials, outage, timeout) is reported the same way
+const uploadFailed = (error) => {
+  console.error("Upload failed:", error?.message || error);
+  return new AppError(502, "Uploading the file failed. Please try again.", "UPLOAD_FAILED");
+};
 
 const DATA_URI = /^data:image\/(png|jpe?g|gif|webp);base64,[A-Za-z0-9+/=]+$/;
 const MAX_IMAGE_CHARS = 4_500_000; // ~3.4MB decoded, safely under the 5mb JSON body limit
@@ -7,14 +14,18 @@ export const isValidImageDataUri = (value) =>
   typeof value === "string" && value.length <= MAX_IMAGE_CHARS && DATA_URI.test(value);
 
 export const uploadImage = async (dataUri, options = {}) => {
-  const res = await cloudinary.uploader.upload(dataUri, {
-    folder: "chatapp",
-    resource_type: "image",
-    quality: "auto",
-    fetch_format: "auto",
-    ...options,
-  });
-  return res.secure_url;
+  try {
+    const res = await cloudinary.uploader.upload(dataUri, {
+      folder: "chatapp",
+      resource_type: "image",
+      quality: "auto",
+      fetch_format: "auto",
+      ...options,
+    });
+    return res.secure_url;
+  } catch (error) {
+    throw uploadFailed(error);
+  }
 };
 
 // ---------- generic file attachments (documents, archives, audio) ----------
@@ -53,10 +64,14 @@ export const safeFileName = (name) =>
 
 export const uploadFile = async (dataUri, name) => {
   const clean = safeFileName(name);
-  const res = await cloudinary.uploader.upload(dataUri, {
-    folder: "chatapp/files",
-    resource_type: "raw",
-    public_id: `${Date.now().toString(36)}-${clean}`,
-  });
-  return { url: res.secure_url, bytes: res.bytes, name: clean };
+  try {
+    const res = await cloudinary.uploader.upload(dataUri, {
+      folder: "chatapp/files",
+      resource_type: "raw",
+      public_id: `${Date.now().toString(36)}-${clean}`,
+    });
+    return { url: res.secure_url, bytes: res.bytes, name: clean };
+  } catch (error) {
+    throw uploadFailed(error);
+  }
 };

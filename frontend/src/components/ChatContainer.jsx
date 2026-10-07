@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { XIcon } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
@@ -9,11 +9,13 @@ import NoChatHistoryPlaceholder from "./NoChatHistoryPlaceholder";
 import MessageInput from "./MessageInput";
 import MessagesLoadingSkeleton from "./MessagesLoadingSkeleton";
 import MessageBubble from "./MessageBubble";
-import SearchPanel from "./SearchPanel";
-import ForwardModal from "./ForwardModal";
+const SearchPanel = lazy(() => import("./SearchPanel"));
+const ForwardModal = lazy(() => import("./ForwardModal"));
 import { dayLabel } from "../lib/chatUtils.js";
 
 const NEAR_BOTTOM_PX = 160;
+const INITIAL_RENDER = 80; // long histories render in pages: far fewer DOM nodes to lay out
+const RENDER_STEP = 100;
 
 function ChatContainer() {
   const selectedUser = useChatStore((s) => s.selectedUser);
@@ -22,24 +24,53 @@ function ChatContainer() {
   const jumpTarget = useChatStore((s) => s.jumpTarget);
   const lightbox = useChatStore((s) => s.lightbox);
   const searchOpen = useChatStore((s) => s.searchOpen);
+  const forwarding = useChatStore((s) => Boolean(s.forwardingMessage));
   const getMessagesByUserId = useChatStore((s) => s.getMessagesByUserId);
   const jumpToMessage = useChatStore((s) => s.jumpToMessage);
   const authUser = useAuthStore((s) => s.authUser);
-  const { translateLang, autoTranslate, smartReplies } = usePrefsStore();
+  const translateLang = usePrefsStore((s) => s.translateLang);
+  const autoTranslate = usePrefsStore((s) => s.autoTranslate);
+  const smartReplies = usePrefsStore((s) => s.smartReplies);
 
   const scrollerRef = useRef(null);
   const endRef = useRef(null);
   const nearBottom = useRef(true);
   const lastLen = useRef(0);
   const translated = useRef(new Set()); // ids we already tried to auto-translate
+  const seen = useRef(new Set()); // ids already on screen
+  const freshIds = useRef(new Set()); // ids that arrived while watching: they animate in
+  const hydrated = useRef(false);
   const [flashId, setFlashId] = useState(null);
+  const [renderCount, setRenderCount] = useState(INITIAL_RENDER);
 
   useEffect(() => {
     lastLen.current = 0;
     nearBottom.current = true;
     translated.current = new Set();
+    seen.current = new Set();
+    freshIds.current = new Set();
+    hydrated.current = false;
+    setRenderCount(INITIAL_RENDER);
     getMessagesByUserId(selectedUser._id);
   }, [selectedUser, getMessagesByUserId]);
+
+  // the history that was already there never animates; only new arrivals do
+  useEffect(() => {
+    if (!isMessagesLoading) hydrated.current = true;
+  }, [isMessagesLoading, messages]);
+
+  // opening the tab / window again counts as reading the open conversation
+  useEffect(() => {
+    const onVisible = () => {
+      if (!document.hidden) useChatStore.getState().markConversationRead(selectedUser._id);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [selectedUser._id]);
 
   const onScroll = () => {
     const el = scrollerRef.current;
@@ -51,8 +82,10 @@ function ChatContainer() {
     if (jumpTarget || !endRef.current) return;
     const last = messages[messages.length - 1];
     const first = lastLen.current === 0;
+    const grew = messages.length > lastLen.current;
     const mineLast = last && last.senderId === authUser._id;
-    if (first || nearBottom.current || mineLast) {
+    // follow new messages only when some arrived (not when e.g. a search jump just finished)
+    if (first || (grew && (nearBottom.current || mineLast))) {
       endRef.current.scrollIntoView({ behavior: first ? "auto" : "smooth" });
     }
     lastLen.current = messages.length;
@@ -62,13 +95,19 @@ function ChatContainer() {
   useEffect(() => {
     if (!jumpTarget) return;
     const el = document.getElementById(`msg-${jumpTarget}`);
-    if (!el) return;
+    if (!el) {
+      // not rendered yet because it is in the older part of the history
+      const index = messages.findIndex((m) => m._id === jumpTarget);
+      if (index >= 0 && messages.length - index > renderCount) setRenderCount(messages.length - index + 20);
+      return;
+    }
+    nearBottom.current = false; // we are reading history now: do not snap back to the newest message
     el.scrollIntoView({ behavior: "smooth", block: "center" });
     setFlashId(jumpTarget);
     useChatStore.getState().clearJumpTarget();
     const t = setTimeout(() => setFlashId(null), 1700);
     return () => clearTimeout(t);
-  }, [jumpTarget, messages]);
+  }, [jumpTarget, messages, renderCount]);
 
   const onJump = useCallback((id) => jumpToMessage(id), [jumpToMessage]);
 
@@ -83,23 +122,23 @@ function ChatContainer() {
     return () => clearTimeout(t);
   }, [messages, smartReplies, isMessagesLoading]);
 
-  // live translation of incoming messages (newest first, once per message)
+  // live translation: new incoming messages go out in ONE request per burst, errors stay silent
   useEffect(() => {
     if (!autoTranslate || !translateLang || isMessagesLoading) return;
-    const todo = messages
+    const ids = messages
       .filter(
         (m) =>
           m.senderId !== authUser._id &&
           m.text &&
           !m.deletedAt &&
           !m.isOptimistic &&
-          !translated.current.has(m._id),
+          !translated.current.has(m._id + translateLang),
       )
-      .slice(-15);
-    todo.forEach((m, i) => {
-      translated.current.add(m._id);
-      setTimeout(() => useChatStore.getState().translateMessage(m._id, translateLang), i * 250);
-    });
+      .slice(-20)
+      .map((m) => m._id);
+    if (!ids.length) return;
+    ids.forEach((id) => translated.current.add(id + translateLang));
+    useChatStore.getState().translateMessages(ids, translateLang);
   }, [messages, autoTranslate, translateLang, isMessagesLoading, authUser._id]);
 
   useEffect(() => {
@@ -114,6 +153,19 @@ function ChatContainer() {
     return () => window.removeEventListener("keydown", onKey, true);
   }, [lightbox]);
 
+  const hiddenCount = Math.max(0, messages.length - renderCount);
+  const visibleMessages = hiddenCount ? messages.slice(-renderCount) : messages;
+
+  // keep the reading position when older messages are inserted above
+  const showEarlier = () => {
+    const el = scrollerRef.current;
+    const before = el?.scrollHeight ?? 0;
+    setRenderCount((n) => n + RENDER_STEP);
+    requestAnimationFrame(() => {
+      if (el) el.scrollTop += el.scrollHeight - before;
+    });
+  };
+
   let lastDay = "";
 
   return (
@@ -123,15 +175,28 @@ function ChatContainer() {
       <div
         ref={scrollerRef}
         onScroll={onScroll}
-        className="min-h-0 flex-1 overflow-y-auto scroll-smooth py-6"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-6"
         role="log"
         aria-live="polite"
         aria-label={`Conversation with ${selectedUser.fullName}`}
       >
         {messages.length > 0 && !isMessagesLoading ? (
           <div className="mx-auto max-w-3xl space-y-3 px-4 pt-6 sm:px-6">
-            <AnimatePresence initial={false}>
-              {messages.map((msg) => {
+            {hiddenCount > 0 && (
+              <div className="flex justify-center">
+                <button
+                  onClick={showEarlier}
+                  className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-1.5 text-xs font-semibold text-slate-300 hover:bg-white/10 hover:text-white"
+                >
+                  Show {Math.min(hiddenCount, RENDER_STEP)} earlier messages
+                </button>
+              </div>
+            )}
+            {(
+              <>
+              {visibleMessages.map((msg) => {
+                if (hydrated.current && !seen.current.has(msg._id)) freshIds.current.add(msg._id);
+                seen.current.add(msg._id);
                 const day = dayLabel(msg.createdAt);
                 const showDay = day !== lastDay;
                 lastDay = day;
@@ -148,12 +213,14 @@ function ChatContainer() {
                       msg={msg}
                       mine={msg.senderId === authUser._id}
                       flash={flashId === msg._id}
+                      fresh={freshIds.current.has(msg._id)}
                       onJump={onJump}
                     />
                   </Fragment>
                 );
               })}
-            </AnimatePresence>
+              </>
+            )}
             <div ref={endRef} />
           </div>
         ) : isMessagesLoading ? (
@@ -165,8 +232,10 @@ function ChatContainer() {
 
       <MessageInput />
 
-      <AnimatePresence>{searchOpen && <SearchPanel />}</AnimatePresence>
-      <ForwardModal />
+      <Suspense fallback={null}>
+        <AnimatePresence>{searchOpen && <SearchPanel />}</AnimatePresence>
+        {forwarding && <ForwardModal />}
+      </Suspense>
 
       <AnimatePresence>
         {lightbox && (

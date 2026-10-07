@@ -100,3 +100,18 @@ textarea:focus-visible {
     box-shadow: 0 0 0 3px rgb(var(--brand400) / 0);
   }
 }
+
+/* ---------- performance helpers ---------- */
+.msg-in {
+  animation: msgIn 0.2s ease-out;
+}
+@keyframes msgIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

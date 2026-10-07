@@ -44,11 +44,11 @@
 @layer components {
   /* frosted glass surface */
   .glass {
-    @apply border border-white/10 bg-white/[0.04] backdrop-blur-xl;
+    @apply border border-white/10 bg-white/[0.04];
   }
 
   .glass-strong {
-    @apply border border-white/10 bg-ink-900/70 backdrop-blur-2xl;
+    @apply border border-white/10 bg-ink-900/85;
   }
 
   /* gradient text */

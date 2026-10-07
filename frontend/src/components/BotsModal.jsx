@@ -3,12 +3,13 @@ import toast from "react-hot-toast";
 import { BotIcon, CopyIcon, PlusIcon, RefreshCwIcon, Trash2Icon } from "lucide-react";
 import Modal from "./Modal";
 import { axiosInstance } from "../lib/axios";
+import { getErrorMessage } from "../lib/errors";
 import { useChatStore } from "../store/useChatStore";
 
 const field =
   "w-full rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-brand-500/70";
 
-const errText = (e) => e.response?.data?.message || "Something went wrong";
+const errText = (e) => getErrorMessage(e);
 
 function BotCard({ bot, onChange, onDelete }) {
   const [url, setUrl] = useState(bot.webhookUrl || "");
@@ -108,7 +109,6 @@ function BotsModal({ open, onClose }) {
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
-  const { getAllContacts, getMyChatPartners } = useChatStore();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -133,8 +133,7 @@ function BotsModal({ open, onClose }) {
       const res = await axiosInstance.post("/bots", { name });
       setBots((b) => [...b, res.data]);
       setName("");
-      getAllContacts();
-      getMyChatPartners();
+      // the bot greets you over the socket, which adds it to the chats list by itself
       toast.success("Bot created - find it in your chats");
     } catch (e2) {
       toast.error(errText(e2));
@@ -149,8 +148,7 @@ function BotsModal({ open, onClose }) {
       setBots((b) => b.filter((x) => x._id !== bot._id));
       const { selectedUser, setSelectedUser } = useChatStore.getState();
       if (selectedUser?._id === bot._id) setSelectedUser(null);
-      getAllContacts();
-      getMyChatPartners();
+      useChatStore.getState().fetchChats({ silent: true });
     } catch (e) {
       toast.error(errText(e));
     }

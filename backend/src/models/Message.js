@@ -37,6 +37,7 @@ const messageSchema = new mongoose.Schema(
     replyTo: { type: mongoose.Schema.Types.ObjectId, ref: "Message" },
     forwarded: { type: Boolean, default: false },
     reactions: { type: [reactionSchema], default: [] },
+    readAt: Date, // when the receiver opened the conversation
     editedAt: Date,
     deletedAt: Date,
   },
@@ -46,6 +47,8 @@ const messageSchema = new mongoose.Schema(
 // conversation lookups (both directions) and chat-partner discovery
 messageSchema.index({ senderId: 1, receiverId: 1, createdAt: -1 });
 messageSchema.index({ receiverId: 1, senderId: 1, createdAt: -1 });
+// unread counters
+messageSchema.index({ receiverId: 1, readAt: 1, senderId: 1 });
 
 const Message = mongoose.model("Message", messageSchema);
 

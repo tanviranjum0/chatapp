@@ -17,8 +17,9 @@ import {
 } from "lucide-react";
 import EmojiPicker from "./EmojiPicker";
 import { fileIconFor, formatBytes } from "../lib/chatUtils.js";
+import { resizeToFit } from "../lib/imageUtils";
 
-const MAX_IMAGE_BYTES = 3 * 1024 * 1024; // server rejects anything bigger
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024; // photos are shrunk to 1600px before upload
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
 const FILE_TYPES = new Set([
   "application/pdf", "text/plain", "text/csv", "application/zip", "application/msword",
@@ -124,10 +125,14 @@ function MessageInput() {
     if (!f.type.startsWith("image/")) return toast.error("Please select an image file");
     if (f.size > MAX_IMAGE_BYTES) {
       e.target.value = "";
-      return toast.error("Image is too large (max 3MB)");
+      return toast.error("Image is too large (max 20MB)");
     }
     setFile(null);
-    setImagePreview(await readAsDataUrl(f));
+    try {
+      setImagePreview(await resizeToFit(f));
+    } catch (err) {
+      toast.error(err.message);
+    }
   };
 
   const handleFileChange = async (e) => {
@@ -179,7 +184,7 @@ function MessageInput() {
   const contextText = editing ? editingMessage.text : replyingTo?.text || (replyingTo?.image ? "📷 Photo" : replyingTo?.file?.name);
 
   return (
-    <div className="shrink-0 border-t border-white/10 bg-black/20 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:p-4">
+    <div className="shrink-0 border-t border-white/10 bg-black/20 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4">
       {/* smart replies */}
       <AnimatePresence>
         {!editing && suggestions.replies.length > 0 && (

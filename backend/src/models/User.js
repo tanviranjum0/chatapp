@@ -27,6 +27,8 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
 
+    twoFactorEnabled: { type: Boolean, default: false }, // e-mail a code on every login
+
     // ---- bots & integrations ----
     isBot: { type: Boolean, default: false },
     ownerId: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // who created the bot

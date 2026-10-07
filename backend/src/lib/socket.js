@@ -45,7 +45,7 @@ io.on("connection", (socket) => {
   broadcastOnlineUsers();
 
   // ---- WebRTC call signalling: the server only relays, media flows peer to peer ----
-  const SIGNALS = new Set(["offer", "answer", "ice", "end", "reject", "busy"]);
+  const SIGNALS = new Set(["offer", "answer", "ice", "end", "reject", "busy", "state", "reneg-offer", "reneg-answer"]);
   let budget = 60; // signals per 10s window, ICE candidates are chatty but bounded
   const refill = setInterval(() => (budget = 60), 10_000);
 

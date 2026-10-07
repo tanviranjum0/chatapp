@@ -14,6 +14,7 @@ import { connectDB } from "./lib/db.js";
 import { ENV, IS_PROD, ALLOWED_ORIGINS, assertEnv } from "./lib/env.js";
 import { app, server, io } from "./lib/socket.js";
 import mongoSanitize from "@exortek/express-mongo-sanitize";
+import { errorMiddleware, notFoundMiddleware } from "./lib/errors.js";
 
 import dns from "node:dns";
 dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
@@ -45,6 +46,8 @@ app.use(
 app.get("/health", (_, res) =>
   res.status(200).json({ status: "ok", db: mongoose.connection.readyState === 1 }),
 );
+
+app.get("/api/health", (_, res) => res.status(200).json({ status: "ok" }));
 
 app.use(express.json({ limit: "8mb" })); // req.body (images and files travel as base64)
 app.use(
@@ -81,13 +84,13 @@ if (IS_PROD && fs.existsSync(distPath)) {
   });
 }
 
-// last-resort error handler (e.g. CORS rejection, malformed JSON) - never leak stack traces
-// eslint-disable-next-line no-unused-vars
-app.use((err, _req, res, _next) => {
-  const status = err.status || err.statusCode || 500;
-  if (status >= 500) console.error("Unhandled error:", err.message);
-  res.status(status).json({ message: status >= 500 ? "Internal server error" : err.message });
-});
+// unknown API routes answer with json (not an html page), then the shared error mapper
+app.use("/api", notFoundMiddleware);
+app.use(errorMiddleware);
+
+// a crash in one request/handler must never take the whole chat server down
+process.on("unhandledRejection", (reason) => console.error("Unhandled rejection:", reason));
+process.on("uncaughtException", (err) => console.error("Uncaught exception:", err));
 
 // connect to the database first so we never accept traffic we cannot serve
 await connectDB();

@@ -17,7 +17,7 @@ function NoChatsFound() {
       <div>
         <h4 className="mb-1 font-semibold text-slate-100">No conversations yet</h4>
         <p className="px-6 text-sm text-slate-400">
-          Start a new chat by selecting a contact from the contacts tab
+          Search for a friend by name or email in the contacts tab to start chatting
         </p>
       </div>
       <motion.button
