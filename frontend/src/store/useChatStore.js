@@ -4,6 +4,7 @@ import { getErrorMessage } from "../lib/errors";
 import toast from "react-hot-toast";
 import { useAuthStore } from "./useAuthStore";
 import { usePrefsStore } from "./usePrefsStore";
+import { useCallStore } from "./useCallStore";
 
 // swaps one message inside a list (by id), leaving the rest untouched
 const replaceIn = (list, msg) => list.map((m) => (m._id === msg._id ? { ...m, ...msg } : m));
@@ -419,7 +420,10 @@ export const useChatStore = create((set, get) => ({
 
     if (!mine) {
       if (open) get().markConversationRead(otherId);
-      else toast(`New message${known ? ` from ${known.fullName}` : ""}`, { icon: "💬", id: `msg-${otherId}` });
+      // no toast while a call is ringing / running: it would sit on top of the call controls
+      else if (useCallStore.getState().status === "idle") {
+        toast(`New message${known ? ` from ${known.fullName}` : ""}`, { icon: "💬", id: `msg-${otherId}` });
+      }
       if (isSoundEnabled) {
         const notificationSound = new Audio("/sounds/notification.mp3");
         notificationSound.play().catch(() => {});

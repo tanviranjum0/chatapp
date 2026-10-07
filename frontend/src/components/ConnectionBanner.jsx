@@ -26,17 +26,20 @@ function ConnectionBanner() {
   return (
     <AnimatePresence>
       {text && (
-        <motion.div
-          initial={{ y: -40, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -40, opacity: 0 }}
-          role="status"
-          aria-live="polite"
-          className="fixed left-1/2 top-[max(0.75rem,env(safe-area-inset-top))] z-[80] flex -translate-x-1/2 items-center gap-2 rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-black shadow-soft"
-        >
-          {online ? <RefreshCwIcon className="size-4 animate-spin" /> : <WifiOffIcon className="size-4" />}
-          {text}
-        </motion.div>
+        // flex centering (not translate classes): framer-motion owns the inline transform
+        <div className="pointer-events-none fixed inset-x-0 top-[max(0.75rem,env(safe-area-inset-top))] z-[80] flex justify-center px-3">
+          <motion.div
+            initial={{ y: -40, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -40, opacity: 0 }}
+            role="status"
+            aria-live="polite"
+            className="pointer-events-auto flex max-w-full items-center gap-2 rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-black shadow-soft"
+          >
+            {online ? <RefreshCwIcon className="size-4 shrink-0 animate-spin" /> : <WifiOffIcon className="size-4 shrink-0" />}
+            <span className="min-w-0">{text}</span>
+          </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );

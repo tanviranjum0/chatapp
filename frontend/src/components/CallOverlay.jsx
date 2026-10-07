@@ -144,27 +144,46 @@ function CallOverlay() {
   return (
     <AnimatePresence>
       {incoming && (
-        <motion.div
+        // Centered with flex, NOT with translate classes: framer-motion rewrites the inline transform for
+        // its slide-in, which silently dropped -translate-x-1/2 and pushed the banner off screen on phones.
+        <div
           key="incoming"
-          initial={{ opacity: 0, y: -30 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -30 }}
-          role="alertdialog"
-          aria-label={`Incoming ${media} call from ${peer.fullName}`}
-          className="glass-strong fixed left-1/2 top-4 z-[70] flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 items-center gap-4 rounded-3xl p-4 shadow-soft"
+          className="pointer-events-none fixed inset-x-0 top-0 z-[70] flex justify-center px-3 pt-[max(0.75rem,env(safe-area-inset-top))]"
         >
-          <Avatar src={peer.profilePic} alt={peer.fullName} size="size-14" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold text-white">{peer.fullName}</p>
-            <p className="text-sm text-slate-400">Incoming {video ? "video" : "voice"} call…</p>
-          </div>
-          <button onClick={reject} aria-label="Decline call" className={`${ctrl} !size-12 bg-red-500`}>
-            <PhoneOffIcon className="size-5" />
-          </button>
-          <button onClick={accept} aria-label="Accept call" className={`${ctrl} !size-12 animate-pulse bg-emerald-500`}>
-            {video ? <VideoIcon className="size-5" /> : <PhoneIcon className="size-5" />}
-          </button>
-        </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: -30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -30 }}
+            role="alertdialog"
+            aria-label={`Incoming ${media} call from ${peer.fullName}`}
+            className="pointer-events-auto grid w-full max-w-md border border-white/15 bg-ink-900 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-4 rounded-3xl p-4 shadow-soft sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-4 sm:p-5"
+          >
+            <Avatar src={peer.profilePic} alt="" size="size-14" />
+            <div className="min-w-0">
+              <p className="truncate text-base font-semibold text-white">{peer.fullName}</p>
+              <p className="truncate text-sm text-slate-400">Incoming {video ? "video" : "voice"} call…</p>
+            </div>
+            {/* phones: two wide, easy-to-hit buttons under the name; larger screens: round icons on the right */}
+            <div className="col-span-2 grid grid-cols-2 gap-3 sm:col-span-1 sm:flex">
+              <button
+                onClick={reject}
+                aria-label="Decline call"
+                className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-red-500 px-4 text-sm font-semibold text-snow shadow-lg transition-transform active:scale-95 sm:size-12 sm:rounded-full sm:px-0"
+              >
+                <PhoneOffIcon className="size-5 shrink-0" />
+                <span className="sm:hidden">Decline</span>
+              </button>
+              <button
+                onClick={accept}
+                aria-label="Accept call"
+                className="ring-pulse flex h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 text-sm font-semibold text-snow transition-transform active:scale-95 sm:size-12 sm:rounded-full sm:px-0"
+              >
+                {video ? <VideoIcon className="size-5 shrink-0" /> : <PhoneIcon className="size-5 shrink-0" />}
+                <span className="sm:hidden">Accept</span>
+              </button>
+            </div>
+          </motion.div>
+        </div>
       )}
 
       {inCall && (
