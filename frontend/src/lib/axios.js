@@ -5,8 +5,9 @@ const DEFAULT_PROD_BACKEND = "https://tanvir-chatapp-back.onrender.com";
 
 // In production the API is called on the SAME origin as the site ("/api"). vercel.json proxies it to
 // the backend, so the login cookie is first-party - iOS/Safari blocks cookies from other sites.
-// VITE_API_URL can still point somewhere else (full url incl. /api), e.g. a local backend.
-export const API_URL = import.meta.env.VITE_API_URL || (DEV ? "http://localhost:3000/api" : "/api");
+// VITE_API_BASE (new name on purpose: an old VITE_API_URL stored in Vercel must not bring back cross-site calls)
+// can still point somewhere else, as a full url incl. /api.
+export const API_URL = import.meta.env.VITE_API_BASE || (DEV ? "http://localhost:3000/api" : "/api");
 
 // Vercel cannot proxy websockets, so the realtime socket connects straight to the backend and
 // authenticates with a short lived token instead of a cookie (see useAuthStore.connectSocket).
