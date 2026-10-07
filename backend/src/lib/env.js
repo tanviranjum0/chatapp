@@ -14,6 +14,13 @@ export const ENV = {
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
   ARCJET_KEY: process.env.ARCJET_KEY,
   ARCJET_ENV: process.env.ARCJET_ENV,
+  // optional: AI smart replies / translation / assistant bot (falls back to simple heuristics)
+  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+  AI_MODEL: process.env.AI_MODEL || "claude-haiku-4-5-20251001",
+  // optional: TURN relay for calls behind strict NATs (comma separated turn:/turns: urls)
+  TURN_URLS: process.env.TURN_URLS,
+  TURN_USERNAME: process.env.TURN_USERNAME,
+  TURN_CREDENTIAL: process.env.TURN_CREDENTIAL,
 };
 
 export const IS_PROD = ENV.NODE_ENV === "production";

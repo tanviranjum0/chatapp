@@ -1,9 +1,11 @@
 import { useState, useRef } from "react";
-import { LogOutIcon, VolumeOffIcon, Volume2Icon, CameraIcon } from "lucide-react";
+import { LogOutIcon, VolumeOffIcon, Volume2Icon, CameraIcon, SettingsIcon, BotIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 import Avatar from "./Avatar";
+import SettingsModal from "./SettingsModal";
+import BotsModal from "./BotsModal";
 
 const mouseClickSound = new Audio("/sounds/on-off.mp3");
 
@@ -14,6 +16,8 @@ function ProfileHeader() {
   const { logout, authUser, updateProfile } = useAuthStore();
   const { isSoundEnabled, toggleSound } = useChatStore();
   const [selectedImg, setSelectedImg] = useState(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [botsOpen, setBotsOpen] = useState(false);
 
   const fileInputRef = useRef(null);
 
@@ -50,7 +54,7 @@ function ProfileHeader() {
               online
             />
             <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/55 opacity-0 transition-opacity group-hover:opacity-100">
-              <CameraIcon className="size-5 text-white" />
+              <CameraIcon className="size-5 text-snow" />
             </span>
           </motion.button>
           <input
@@ -72,6 +76,25 @@ function ProfileHeader() {
 
         {/* BUTTONS */}
         <div className="flex items-center gap-1">
+          <motion.button
+            whileTap={{ scale: 0.85 }}
+            className={iconBtn}
+            aria-label="Bots and integrations"
+            title="Bots & integrations"
+            onClick={() => setBotsOpen(true)}
+          >
+            <BotIcon className="size-5" />
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.85, rotate: 30 }}
+            className={iconBtn}
+            aria-label="Settings"
+            title="Settings"
+            onClick={() => setSettingsOpen(true)}
+          >
+            <SettingsIcon className="size-5" />
+          </motion.button>
+
           {/* SOUND TOGGLE BTN */}
           <motion.button
             whileTap={{ scale: 0.85, rotate: -10 }}
@@ -102,6 +125,8 @@ function ProfileHeader() {
           </motion.button>
         </div>
       </div>
+      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <BotsModal open={botsOpen} onClose={() => setBotsOpen(false)} />
     </div>
   );
 }

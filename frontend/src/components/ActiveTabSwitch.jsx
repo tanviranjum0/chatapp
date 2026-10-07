@@ -20,7 +20,7 @@ function ActiveTabSwitch() {
             key={id}
             onClick={() => setActiveTab(id)}
             className={`relative flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-sm font-semibold transition-colors ${
-              active ? "text-white" : "text-slate-400 hover:text-slate-200"
+              active ? "text-snow" : "text-slate-400 hover:text-slate-200"
             }`}
           >
             {active && (

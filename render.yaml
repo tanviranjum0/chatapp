@@ -37,3 +37,11 @@ services:
         sync: false
       - key: ARCJET_ENV
         value: production
+      - key: ANTHROPIC_API_KEY # optional: enables AI smart replies, translation and the AI Assistant bot
+        sync: false
+      - key: TURN_URLS # optional: comma separated turn:/turns: urls for calls behind strict NATs
+        sync: false
+      - key: TURN_USERNAME
+        sync: false
+      - key: TURN_CREDENTIAL
+        sync: false

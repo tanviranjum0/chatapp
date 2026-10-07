@@ -1,8 +1,13 @@
 import express from "express";
 import {
+  deleteMessage,
+  editMessage,
+  forwardMessage,
   getAllContacts,
   getChatPartners,
   getMessagesByUserId,
+  reactToMessage,
+  searchMessages,
   sendMessage,
 } from "../controllers/message.controller.js";
 import { protectRoute } from "../middleware/auth.middleware.js";
@@ -16,7 +21,12 @@ router.use(arcjetProtection, protectRoute);
 
 router.get("/contacts", getAllContacts);
 router.get("/chats", getChatPartners);
-router.get("/:id", getMessagesByUserId);
+router.get("/search/:id", searchMessages);
+router.post("/forward", forwardMessage);
 router.post("/send/:id", sendMessage);
+router.patch("/edit/:messageId", editMessage);
+router.post("/react/:messageId", reactToMessage);
+router.delete("/:messageId", deleteMessage);
+router.get("/:id", getMessagesByUserId);
 
 export default router;

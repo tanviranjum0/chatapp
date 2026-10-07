@@ -27,7 +27,7 @@ function AuthShell({ icon, title, subtitle, children, footer, image, tagline }) 
               transition={{ duration: 0.5 }}
               className="mx-auto mb-5 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-bloom-500 shadow-glow"
             >
-              <Icon className="size-8 text-white" />
+              <Icon className="size-8 text-snow" />
             </motion.div>
             <h2 className="text-gradient animate-gradient text-3xl font-extrabold">{title}</h2>
             <p className="mt-2 text-slate-400">{subtitle}</p>

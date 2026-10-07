@@ -15,7 +15,7 @@ function PageLoader() {
           animate={{ rotate: [0, 8, -8, 0], y: [0, -6, 0] }}
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
         >
-          <MessageCircleIcon className="size-9 text-white" />
+          <MessageCircleIcon className="size-9 text-snow" />
         </motion.div>
       </div>
       <div className="flex gap-2">

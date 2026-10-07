@@ -1,5 +1,13 @@
 import mongoose from "mongoose";
 
+const reactionSchema = new mongoose.Schema(
+  {
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    emoji: { type: String, required: true, maxlength: 16 },
+  },
+  { _id: false },
+);
+
 const messageSchema = new mongoose.Schema(
   {
     senderId: {
@@ -20,6 +28,17 @@ const messageSchema = new mongoose.Schema(
     image: {
       type: String,
     },
+    file: {
+      url: String,
+      name: String,
+      size: Number,
+      mimeType: String,
+    },
+    replyTo: { type: mongoose.Schema.Types.ObjectId, ref: "Message" },
+    forwarded: { type: Boolean, default: false },
+    reactions: { type: [reactionSchema], default: [] },
+    editedAt: Date,
+    deletedAt: Date,
   },
   { timestamps: true }
 );

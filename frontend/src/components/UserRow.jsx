@@ -19,9 +19,16 @@ const UserRow = memo(function UserRow({ user, online, selected, onSelect }) {
     >
       <Avatar src={user.profilePic} alt={user.fullName} online={online} />
       <div className="min-w-0 flex-1">
-        <h4 className="truncate font-semibold text-slate-100">{user.fullName}</h4>
-        <p className={`text-xs ${online ? "text-emerald-400" : "text-slate-500"}`}>
-          {online ? "Online" : "Offline"}
+        <h4 className="flex items-center gap-2 truncate font-semibold text-slate-100">
+          <span className="truncate">{user.fullName}</span>
+          {user.isBot && (
+            <span className="rounded-full bg-brand-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase text-brand-400">
+              Bot
+            </span>
+          )}
+        </h4>
+        <p className={`text-xs ${online || user.isBot ? "text-emerald-400" : "text-slate-500"}`}>
+          {user.isBot ? "Always on" : online ? "Online" : "Offline"}
         </p>
       </div>
     </motion.button>

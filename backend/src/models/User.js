@@ -26,6 +26,13 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+
+    // ---- bots & integrations ----
+    isBot: { type: Boolean, default: false },
+    ownerId: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // who created the bot
+    builtin: { type: String }, // e.g. "assistant" for the shared AI bot
+    webhookUrl: { type: String, maxlength: 500, select: false }, // outgoing: we POST user messages here
+    hookToken: { type: String, select: false, index: true, sparse: true }, // incoming webhook secret
   },
   { timestamps: true } // createdAt & updatedAt
 );

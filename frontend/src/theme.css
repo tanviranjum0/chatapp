@@ -1,0 +1,102 @@
+/* ---------- theme tokens (space separated rgb so tailwind can add opacity) ---------- */
+:root {
+  color-scheme: dark;
+  --c-white: 255 255 255;
+  --c-black: 0 0 0;
+  --s100: 241 245 249;
+  --s200: 226 232 240;
+  --s300: 203 213 225;
+  --s400: 148 163 184;
+  --s500: 100 116 139;
+  --ink950: 6 6 15;
+  --ink900: 10 10 24;
+  --ink800: 17 17 42;
+  --ink700: 26 26 58;
+  --brand400: 139 155 255;
+  --toast-bg: rgba(17, 17, 42, 0.9);
+  --toast-fg: #e2e8f0;
+  --toast-border: rgba(255, 255, 255, 0.12);
+}
+
+/* light theme: "white" overlays become dark tints, "black" overlays become light tints */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --c-white: 15 23 42;
+  --c-black: 255 255 255;
+  --s100: 15 23 42;
+  --s200: 30 41 59;
+  --s300: 51 65 85;
+  --s400: 71 85 105;
+  --s500: 100 116 139;
+  --ink950: 238 242 255;
+  --ink900: 255 255 255;
+  --ink800: 226 232 240;
+  --ink700: 203 213 225;
+  --brand400: 79 70 229;
+  --toast-bg: rgba(255, 255, 255, 0.96);
+  --toast-fg: #0f172a;
+  --toast-border: rgba(15, 23, 42, 0.15);
+}
+
+/* high contrast: stronger text and borders in both themes */
+:root[data-contrast="high"] {
+  --s200: 255 255 255;
+  --s300: 255 255 255;
+  --s400: 241 245 249;
+  --s500: 226 232 240;
+  --brand400: 165 180 255;
+}
+:root[data-theme="light"][data-contrast="high"] {
+  --s100: 0 0 0;
+  --s200: 0 0 0;
+  --s300: 0 0 0;
+  --s400: 15 23 42;
+  --s500: 30 41 59;
+  --brand400: 49 46 129;
+}
+:root[data-contrast="high"] [class*="border-white"] {
+  border-color: rgb(var(--c-white) / 0.55) !important;
+}
+:root[data-contrast="high"] :focus-visible {
+  outline: 3px solid rgb(var(--brand400));
+  outline-offset: 2px;
+}
+
+/* reduce motion: stop every animation and transition (the motion library is told separately) */
+:root[data-motion="reduce"] *,
+:root[data-motion="reduce"] *::before,
+:root[data-motion="reduce"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* font scale: every rem based tailwind size follows it */
+html {
+  font-size: calc(16px * var(--font-scale, 1));
+}
+
+/* visible keyboard focus everywhere */
+:focus-visible {
+  outline: 2px solid rgb(var(--brand400));
+  outline-offset: 2px;
+}
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
+
+/* message bubble helpers */
+.msg-flash {
+  animation: msgFlash 1.6s ease-out;
+}
+@keyframes msgFlash {
+  0%,
+  30% {
+    box-shadow: 0 0 0 3px rgb(var(--brand400) / 0.9);
+  }
+  100% {
+    box-shadow: 0 0 0 3px rgb(var(--brand400) / 0);
+  }
+}

@@ -15,7 +15,7 @@ const NoConversationPlaceholder = () => {
           transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
           className="relative flex size-24 items-center justify-center rounded-[2rem] bg-gradient-to-br from-brand-500 to-bloom-500 shadow-glow"
         >
-          <MessagesSquareIcon className="size-11 text-white" />
+          <MessagesSquareIcon className="size-11 text-snow" />
         </motion.div>
       </div>
       <h3 className="text-gradient animate-gradient mb-2 text-2xl font-extrabold">

@@ -7,14 +7,25 @@ export default {
         sans: ['"Plus Jakarta Sans"', "ui-sans-serif", "system-ui", "sans-serif"],
       },
       colors: {
+        // theme-aware tokens: the values live in index.css (dark / light / high contrast)
+        white: "rgb(var(--c-white) / <alpha-value>)",
+        black: "rgb(var(--c-black) / <alpha-value>)",
+        snow: "#ffffff", // always white (text on gradients and photos)
+        slate: {
+          100: "rgb(var(--s100) / <alpha-value>)",
+          200: "rgb(var(--s200) / <alpha-value>)",
+          300: "rgb(var(--s300) / <alpha-value>)",
+          400: "rgb(var(--s400) / <alpha-value>)",
+          500: "rgb(var(--s500) / <alpha-value>)",
+        },
         ink: {
-          950: "#06060f",
-          900: "#0a0a18",
-          800: "#11112a",
-          700: "#1a1a3a",
+          950: "rgb(var(--ink950) / <alpha-value>)",
+          900: "rgb(var(--ink900) / <alpha-value>)",
+          800: "rgb(var(--ink800) / <alpha-value>)",
+          700: "rgb(var(--ink700) / <alpha-value>)",
         },
         brand: {
-          400: "#8b9bff",
+          400: "rgb(var(--brand400) / <alpha-value>)",
           500: "#6d7cff",
           600: "#5b5bf0",
           700: "#4a46d4",

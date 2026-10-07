@@ -1,6 +1,7 @@
 import { Server } from "socket.io";
 import http from "http";
 import express from "express";
+import mongoose from "mongoose";
 import { ALLOWED_ORIGINS } from "./env.js";
 import { socketAuthMiddleware } from "../middleware/socket.auth.middleware.js";
 
@@ -43,7 +44,41 @@ io.on("connection", (socket) => {
   // io.emit() is used to send events to all connected clients
   broadcastOnlineUsers();
 
+  // ---- WebRTC call signalling: the server only relays, media flows peer to peer ----
+  const SIGNALS = new Set(["offer", "answer", "ice", "end", "reject", "busy"]);
+  let budget = 60; // signals per 10s window, ICE candidates are chatty but bounded
+  const refill = setInterval(() => (budget = 60), 10_000);
+
+  socket.on("call:signal", (msg, ack) => {
+    const reply = typeof ack === "function" ? ack : () => {};
+    if (budget-- <= 0) return reply({ delivered: false });
+    if (
+      !msg ||
+      typeof msg.to !== "string" ||
+      !mongoose.isValidObjectId(msg.to) ||
+      msg.to === userId ||
+      !SIGNALS.has(msg.type) ||
+      typeof msg.callId !== "string" ||
+      msg.callId.length > 64 ||
+      JSON.stringify(msg.payload ?? null).length > 20_000
+    ) {
+      return reply({ delivered: false });
+    }
+    const delivered = isUserOnline(msg.to);
+    if (delivered) {
+      io.to(userRoom(msg.to)).emit("call:signal", {
+        type: msg.type,
+        callId: msg.callId,
+        payload: msg.payload ?? null,
+        media: msg.media === "video" ? "video" : "audio",
+        from: { _id: userId, fullName: socket.user.fullName, profilePic: socket.user.profilePic },
+      });
+    }
+    reply({ delivered });
+  });
+
   socket.on("disconnect", () => {
+    clearInterval(refill);
     const set = userSocketMap.get(userId);
     if (set) {
       set.delete(socket.id);

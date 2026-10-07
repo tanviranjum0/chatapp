@@ -16,7 +16,23 @@ Highlights:
 - 🎨 Beautiful UI with React, Tailwind CSS & Motion (animations)
 - 🧠 Zustand for State Management
 - 🧑‍💻 Git & GitHub Workflow (branches, PRs, merges)
-- 🚀 Easy Deployment (free-tier friendly with Sevalla)
+- 🚀 Easy Deployment (Render for the API, Vercel for the web app)
+
+### Productivity & UX
+
+- ✏️ Edit, 🗑️ delete (for everyone), ↩️ reply-to quotes and ➡️ forward messages (up to 5 chats at once)
+- 😀 Emoji reactions (one per person, tap to toggle), emoji picker and big "stickers"
+- 🔎 In-chat search over messages, file names and photos - jumps to the original message
+- 📎 File sharing (PDF, Office, zip, audio, mp4 up to 4MB) plus rich cards for Google Drive / Docs, Dropbox, OneDrive and GitHub links
+- 📞 Voice & 🎥 video calls with WebRTC (peer to peer, mute / camera toggle, ring / decline / busy handling)
+- 🌗 Dark / light / system theme, text size up to 130%, high contrast and reduce motion modes
+
+### Modern / AI add-ons
+
+- ✨ Smart reply suggestions for the last message
+- 🌍 Per-message and live (auto) translation into 20 languages
+- 🤖 Bots & integrations: incoming webhooks, signed outgoing webhooks, and a built-in AI Assistant bot
+
 
 ---
 
@@ -44,7 +60,42 @@ CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 
 ARCJET_KEY=your_arcjet_key
 ARCJET_ENV=development
+
+# optional - AI smart replies / translation / "AI Assistant" bot (falls back to free heuristics when empty)
+ANTHROPIC_API_KEY=
+AI_MODEL=claude-haiku-4-5-20251001
+
+# optional - TURN relay so calls also work behind strict NATs and firewalls
+TURN_URLS=turn:turn.example.com:3478,turns:turn.example.com:5349
+TURN_USERNAME=
+TURN_CREDENTIAL=
 ```
+
+### Bots & webhooks
+
+Create a bot from the 🤖 button in the sidebar.
+
+- **Incoming** - `POST <incoming url> {"text":"Deploy finished"}` and the bot messages you. No cookies needed, so it works from scripts and CI.
+- **Outgoing** - set an https URL and every message you send the bot is POSTed there as JSON
+  (`{event, bot, from, message}`) with an `X-Chatapp-Signature: sha256=<hmac>` header (HMAC-SHA256 of the raw JSON body keyed with the bot's incoming token). Reply with `{"text":"..."}` to answer.
+  Private / local addresses are blocked.
+
+### API additions
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| PATCH | `/api/messages/edit/:id` | edit own message |
+| DELETE | `/api/messages/:id` | delete own message for everyone |
+| POST | `/api/messages/react/:id` | toggle / swap your reaction |
+| POST | `/api/messages/forward` | forward a message to up to 5 users |
+| GET | `/api/messages/search/:userId?q=&type=files` | search a conversation |
+| GET | `/api/messages/:userId?around=:messageId` | history window around a message |
+| POST | `/api/ai/suggestions`, `/api/ai/translate` | smart replies, translation |
+| GET/POST/PATCH/DELETE | `/api/bots` | manage bots |
+| POST | `/api/hooks/:token` | incoming webhook (public) |
+| GET | `/api/calls/ice` | ICE / TURN servers for calls |
+
+Call signalling travels over the existing Socket.io connection (`call:signal`); the media never touches the server.
 
 ---
 
