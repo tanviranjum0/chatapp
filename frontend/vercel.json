@@ -1,5 +1,8 @@
 {
-  "rewrites": [{ "source": "/((?!assets/|sounds/|.*\\..*).*)", "destination": "/index.html" }],
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://tanvir-chatapp-back.onrender.com/api/:path*" },
+    { "source": "/((?!api/|assets/|sounds/|.*\\..*).*)", "destination": "/index.html" }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",

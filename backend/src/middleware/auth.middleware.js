@@ -14,6 +14,9 @@ export const protectRoute = async (req, res, next) => {
       return res.status(401).json({ message: "Unauthorized - Invalid token" });
     }
 
+    // socket tokens are only good for the websocket handshake
+    if (decoded.purpose) return res.status(401).json({ message: "Unauthorized - Invalid token" });
+
     const user = await User.findById(decoded.userId).select("-password");
     if (!user) return res.status(401).json({ message: "Unauthorized - User not found" });
 

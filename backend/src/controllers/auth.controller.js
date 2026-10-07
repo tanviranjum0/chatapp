@@ -1,5 +1,5 @@
 import { sendWelcomeEmail } from "../emails/emailHandlers.js";
-import { cookieOptions, generateToken } from "../lib/utils.js";
+import { cookieOptions, generateSocketToken, generateToken } from "../lib/utils.js";
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import { ENV } from "../lib/env.js";
@@ -134,4 +134,8 @@ export const updateProfile = async (req, res) => {
     console.error("Error in update profile:", error.message);
     res.status(500).json({ message: "Internal server error" });
   }
+};
+
+export const socketToken = (req, res) => {
+  res.status(200).json({ token: generateSocketToken(req.user._id) });
 };

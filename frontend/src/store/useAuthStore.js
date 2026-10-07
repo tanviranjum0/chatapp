@@ -83,7 +83,14 @@ export const useAuthStore = create((set, get) => ({
     if (!authUser || get().socket?.connected) return;
 
     const socket = io(SOCKET_URL, {
-      withCredentials: true, // this ensures cookies are sent with the connection
+      withCredentials: true,
+      // a fresh short lived token on every (re)connect: works even when the browser refuses
+      // cross-site cookies (iOS/Safari). Old backends without the endpoint fall back to the cookie.
+      auth: (cb) =>
+        axiosInstance
+          .get("/auth/socket-token")
+          .then((res) => cb({ token: res.data.token }))
+          .catch(() => cb({})),
     });
 
     socket.connect();

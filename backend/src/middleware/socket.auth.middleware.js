@@ -5,8 +5,11 @@ import { ENV } from "../lib/env.js";
 
 export const socketAuthMiddleware = async (socket, next) => {
   try {
-    // extract token from http-only cookies
-    const token = parseCookie(socket.handshake.headers.cookie || "").jwt;
+    // browsers on a different site than this server (iOS/Safari blocks cross-site cookies) send a
+    // short lived socket token; same-site clients and old tabs still authenticate with the cookie
+    const handshakeToken = socket.handshake.auth?.token;
+    const token =
+      typeof handshakeToken === "string" ? handshakeToken : parseCookie(socket.handshake.headers.cookie || "").jwt;
 
     if (!token) return next(new Error("Unauthorized - No Token Provided"));
 
@@ -15,6 +18,11 @@ export const socketAuthMiddleware = async (socket, next) => {
     try {
       decoded = jwt.verify(token, ENV.JWT_SECRET, { algorithms: ["HS256"] });
     } catch {
+      return next(new Error("Unauthorized - Invalid Token"));
+    }
+
+    // a socket token is only valid in the handshake, the login cookie never carries a purpose
+    if (typeof handshakeToken === "string" ? decoded.purpose !== "socket" : decoded.purpose) {
       return next(new Error("Unauthorized - Invalid Token"));
     }
 

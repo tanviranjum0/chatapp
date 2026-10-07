@@ -3,11 +3,12 @@ import { ENV, IS_PROD } from "./env.js";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
-// frontend (vercel) and backend (render) live on different sites in production,
-// so the cookie must be SameSite=None; Secure. It is HttpOnly so JS (XSS) can never read it.
+// the web app proxies /api to this server (see frontend/vercel.json), so the browser sees the cookie
+// as first-party. That is what makes login work on iOS/Safari, which blocks cross-site cookies.
+// HttpOnly so JS (XSS) can never read it.
 export const cookieOptions = {
   httpOnly: true,
-  sameSite: IS_PROD ? "none" : "lax",
+  sameSite: "lax",
   secure: IS_PROD,
   path: "/",
 };
@@ -27,3 +28,8 @@ export const generateToken = (userId, res) => {
 
   return token;
 };
+
+// short lived token that lets the browser open the realtime socket straight to this server
+// without needing a (cross-site) cookie. It can never be used as a login cookie.
+export const generateSocketToken = (userId) =>
+  jwt.sign({ userId, purpose: "socket" }, ENV.JWT_SECRET, { expiresIn: "2m", algorithm: "HS256" });

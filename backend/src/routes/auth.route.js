@@ -1,6 +1,6 @@
 import express from "express";
 import rateLimit from "express-rate-limit";
-import { signup, login, logout, updateProfile } from "../controllers/auth.controller.js";
+import { signup, login, logout, updateProfile, socketToken } from "../controllers/auth.controller.js";
 import { protectRoute } from "../middleware/auth.middleware.js";
 import { arcjetProtection } from "../middleware/arcjet.middleware.js";
 
@@ -22,6 +22,8 @@ router.post("/login", credentialLimiter, login);
 router.post("/logout", logout);
 
 router.put("/update-profile", protectRoute, updateProfile);
+
+router.get("/socket-token", protectRoute, socketToken);
 
 router.get("/check", protectRoute, (req, res) => res.status(200).json(req.user));
 
