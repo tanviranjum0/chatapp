@@ -4,6 +4,7 @@ import express from "express";
 import mongoose from "mongoose";
 import { ALLOWED_ORIGINS } from "./env.js";
 import { socketAuthMiddleware } from "../middleware/socket.auth.middleware.js";
+import { bindEmitter, closeCallsFor, recordSignal } from "./callLogs.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -19,6 +20,13 @@ const io = new Server(server, {
 
 // apply authentication middleware to all socket connections
 io.use(socketAuthMiddleware);
+
+// the call history pushes updates to every device of a person
+bindEmitter((id, event, payload) => io.to(`user:${id}`).emit(event, payload));
+
+// people who just lost their connection: their calls are closed only if they do not come back quickly
+const closeTimers = new Map();
+const RECONNECT_GRACE_MS = 20_000;
 
 // {userId: Set<socketId>} - a user can be connected from several tabs/devices
 const userSocketMap = new Map();
@@ -36,6 +44,8 @@ io.on("connection", (socket) => {
   const userId = socket.userId;
 
   socket.join(userRoom(userId));
+  clearTimeout(closeTimers.get(userId)); // reconnected in time: the call (if any) carries on
+  closeTimers.delete(userId);
 
   const sockets = userSocketMap.get(userId) ?? new Set();
   sockets.add(socket.id);
@@ -75,6 +85,8 @@ io.on("connection", (socket) => {
       });
     }
     reply({ delivered });
+    // the server writes the call history from the signals it just validated (callers can not forge it)
+    recordSignal(userId, msg, delivered);
   });
 
   socket.on("disconnect", () => {
@@ -82,7 +94,17 @@ io.on("connection", (socket) => {
     const set = userSocketMap.get(userId);
     if (set) {
       set.delete(socket.id);
-      if (set.size === 0) userSocketMap.delete(userId);
+      if (set.size === 0) {
+        userSocketMap.delete(userId);
+        // the last device left: any call they were in is over unless they reconnect within the grace period
+        closeTimers.set(
+          userId,
+          setTimeout(() => {
+            closeTimers.delete(userId);
+            if (!userSocketMap.has(userId)) closeCallsFor(userId);
+          }, RECONNECT_GRACE_MS),
+        );
+      }
     }
     broadcastOnlineUsers();
   });

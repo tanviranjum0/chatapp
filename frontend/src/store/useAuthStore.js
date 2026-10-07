@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 import { useChatStore } from "./useChatStore";
 import { useCallStore } from "./useCallStore";
+import { useCallLogStore } from "./useCallLogStore";
 
 // the "enter the code we emailed you" step shared by sign up, 2FA login and enabling 2FA
 // a real user always has an id; anything else (an HTML page from a misconfigured proxy, null...) is an error
@@ -138,6 +139,7 @@ export const useAuthStore = create((set, get) => ({
     get().disconnectSocket();
     useCallStore.getState().hangup();
     useChatStore.getState().reset();
+    useCallLogStore.getState().reset();
     set({ authUser: null, pending: null, showAvatarPrompt: false });
   },
 
@@ -211,7 +213,10 @@ export const useAuthStore = create((set, get) => ({
     socket.on("connect", () => {
       set({ socketStatus: "online" });
       // after a reconnect we may have missed messages: quietly catch up
-      if (wasConnected) useChatStore.getState().resync();
+      if (wasConnected) {
+        useChatStore.getState().resync();
+        useCallLogStore.getState().fetchLogs({ silent: true });
+      }
       wasConnected = true;
     });
     socket.on("disconnect", () => set({ socketStatus: "reconnecting", onlineUsers: [] }));

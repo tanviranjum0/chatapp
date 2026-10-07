@@ -27,6 +27,7 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
 
+    callsSeenAt: { type: Date }, // the call history was last opened (drives the missed-call badge)
     twoFactorEnabled: { type: Boolean, default: false }, // e-mail a code on every login
 
     // ---- bots & integrations ----

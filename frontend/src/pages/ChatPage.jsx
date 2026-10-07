@@ -4,11 +4,15 @@ import ProfileHeader from "../components/ProfileHeader";
 import ActiveTabSwitch from "../components/ActiveTabSwitch";
 import ChatsList from "../components/ChatsList";
 import ContactList from "../components/ContactList";
+import CallsList from "../components/CallsList";
 import ChatContainer from "../components/ChatContainer";
 import NoConversationPlaceholder from "../components/NoConversationPlaceholder";
 
 function ChatPage() {
-  const { activeTab, selectedUser } = useChatStore();
+  const activeTab = useChatStore((s) => s.activeTab);
+  const selectedUser = useChatStore((s) => s.selectedUser);
+  const order = ["chats", "calls", "contacts"];
+  const dir = order.indexOf(activeTab) === 0 ? -16 : 16; // slide towards the side the tab is on
 
   return (
     <motion.div
@@ -31,12 +35,12 @@ function ChatPage() {
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, x: activeTab === "chats" ? -16 : 16 }}
+              initial={{ opacity: 0, x: dir }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: activeTab === "chats" ? 16 : -16 }}
+              exit={{ opacity: 0, x: -dir }}
               transition={{ duration: 0.18 }}
             >
-              {activeTab === "chats" ? <ChatsList /> : <ContactList />}
+              {activeTab === "chats" ? <ChatsList /> : activeTab === "calls" ? <CallsList /> : <ContactList />}
             </motion.div>
           </AnimatePresence>
         </div>

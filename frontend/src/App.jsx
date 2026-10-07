@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast";
 import { useAuthStore } from "./store/useAuthStore";
 import { useChatStore } from "./store/useChatStore";
 import { useCallStore } from "./store/useCallStore";
+import { useCallLogStore } from "./store/useCallLogStore";
 import { usePrefsStore } from "./store/usePrefsStore";
 import { warmUpServer } from "./lib/axios";
 import PageLoader from "./components/PageLoader";
@@ -40,9 +41,13 @@ function App() {
     if (!socket) return;
     const offChat = useChatStore.getState().bindSocket(socket);
     const offCall = useCallStore.getState().bindSocket(socket);
+    const offLogs = useCallLogStore.getState().bindSocket(socket);
+    // load the call history in the background so the "missed calls" badge is right from the start
+    useCallLogStore.getState().fetchLogs({ silent: true });
     return () => {
       offChat();
       offCall();
+      offLogs();
     };
   }, [socket]);
 

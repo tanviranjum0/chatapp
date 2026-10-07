@@ -10,6 +10,7 @@ import {
   listBots,
   updateBot,
 } from "../controllers/bot.controller.js";
+import { getHistory, markSeen, deleteOne, clearAll } from "../controllers/call.controller.js";
 import { ENV } from "../lib/env.js";
 
 const perUser = (limit) =>
@@ -85,6 +86,10 @@ botRouter.delete("/:botId", perUser(30), deleteBot);
 // ICE servers for WebRTC calls (TURN is optional and configured through env)
 export const callRouter = express.Router();
 callRouter.use(arcjetProtection, protectRoute);
+callRouter.get("/history", perUser(60), getHistory);
+callRouter.post("/history/seen", perUser(60), markSeen);
+callRouter.delete("/history/:id", perUser(60), deleteOne);
+callRouter.delete("/history", perUser(10), clearAll);
 callRouter.get("/ice", (_req, res) => {
   const iceServers = [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }];
   const turn = (ENV.TURN_URLS || "").split(",").map((u) => u.trim()).filter(Boolean);

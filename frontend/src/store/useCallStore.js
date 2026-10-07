@@ -466,7 +466,8 @@ export const useCallStore = create((set, get) => {
         // audible only if the page was "unlocked" by an earlier tap (see lib/ringtone.js)
         startRingtone().then((audible) => get().status === "incoming" && set({ soundBlocked: !audible }));
         ringTimer = setTimeout(() => {
-          send("reject", from._id, callId);
+          // tells the server this was a missed call (nobody answered), not a deliberate decline
+          send("reject", from._id, callId, { reason: "timeout" });
           cleanup(`Missed call from ${from.fullName}`);
         }, RING_TIMEOUT_MS);
         return;
